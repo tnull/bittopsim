@@ -3,3 +3,4 @@ src/*.o
 *.swp
 src/Makefile.bak
 src/bctopologysim
+doc/*
