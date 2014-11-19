@@ -1,4 +1,4 @@
-CC = g++
+CC = clang++
 CFLAGS = -Wall -g
 SRCS = bctopologysim.cpp
 OBJS = $(SRCS:.cpp=.o)
