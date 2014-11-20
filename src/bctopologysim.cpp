@@ -17,7 +17,7 @@
 using namespace std;
 
 /**
- * @brief AppInit is where the application starts
+ * @brief AppInit is where the application starts.
  */
 bool AppInit( int argc, char* argv[] )
 {
@@ -26,7 +26,7 @@ bool AppInit( int argc, char* argv[] )
 }
 
 /**
- * @brief main is just there to call AppInit
+ * @brief main is just there to call AppInit.
  */
 int main(int argc, char** argv) 
 {
