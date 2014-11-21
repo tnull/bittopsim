@@ -1,8 +1,8 @@
 CC = clang++
 CFLAGS = -Wall -g
-SRCS = bctopologysim.cpp
+SRCS = btctopologysim.cpp
 OBJS = $(SRCS:.cpp=.o)
-	MAIN = bctopologysim
+MAIN = btctopologysim
 
 .PHONY: depend clean
 

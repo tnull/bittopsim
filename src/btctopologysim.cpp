@@ -1,12 +1,12 @@
 /**
- * @mainpage bctopologysim
+ * @mainpage btctopologysim
  *
  * Bitcoin topology simulator
  * @author Elias Rohrer
  */
 
 /**
- * @file bctopologysim.cpp
+ * @file btctopologysim.cpp
  *
  * @brief This is where everything starts, the application is initialzied and run.
  * 
@@ -21,7 +21,7 @@ using namespace std;
  */
 bool AppInit( int argc, char* argv[] )
 {
-	cout << "Starting bctopologysim" << endl;
+	cout << "Starting btctopologysim" << endl;
 	return true;
 }
 
