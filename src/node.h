@@ -12,8 +12,7 @@ class Node
 {
 public:
 	/**
-	 * @brief initialize the Node, set the NodeController
-	 * @param controller: the NodeController for this Node
+	 * @brief initialize the Node
 	 */
 	Node();
 	~Node();
@@ -25,7 +24,7 @@ public:
 	void connect(Node& node);
 
 	/**
-	 * disconnect this Node to another Node
+	 * disconnect this Node from another Node
 	 * @param node: the Node to disconnect from
 	 */
 	void disconnect(Node& node);
@@ -42,7 +41,9 @@ public:
 	 */
 	void removeKnownNode(Node& node);
 
-	// returns the ID of the Node, aka converts the Node IP to a String ID
+	/**
+	 * returns the ID of the Node, aka converts the Node IP to a String ID
+	 */
 	std::string getID();
 private:
 	// generates a random IP, also used as ID for the clients

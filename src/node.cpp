@@ -1,5 +1,5 @@
-#include "Node.h"
-#include "BTSConstants.h"
+#include "node.h"
+#include "constants.h"
 #include <iostream>
 #include <cstring>
 #include <arpa/inet.h>
@@ -77,8 +77,9 @@ struct sockaddr_in Node::generateRandomIP()
 	unsigned long ul_dst;
 
 	p_ip = (unsigned char*) &ul_dst;
-	for(unsigned int i=0; i < sizeof(unsigned long); i++)
-	*p_ip++ = rand()%255;
+	for(unsigned int i=0; i < sizeof(unsigned long); i++) {
+		*p_ip++ = rand()%255;
+	}
 	ip.sin_addr.s_addr = ul_dst;
 	return ip;
 }

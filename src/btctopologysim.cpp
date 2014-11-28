@@ -14,8 +14,8 @@
 
 #include <iostream>
 #include <vector>
-#include "Node.h"
-#include "BTSConstants.h"
+#include "node.h"
+#include "constants.h"
 
 std::vector<Node*> allNodes;
 
@@ -40,8 +40,22 @@ void bootstrapNode(Node& node)
 /**
  * @brief AppInit is where the application starts.
  */
-bool AppInit( int argc, char* argv[] )
+bool AppInit(int argc, char* argv[])
 {
+	// number of nodes to create
+	int numberOfNodes;
+
+	// check arguments
+	switch(argc) {
+		case 2: 
+				numberOfNodes = std::stoi(argv[1]);
+				break;
+		case 1:
+		default:
+			std::cout << "usage: " << argv[0] << " number_of_nodes" << std::endl;
+			return true;
+			break;
+	}
 	// seed random number generator
 	srand(time(nullptr));
 
@@ -49,7 +63,7 @@ bool AppInit( int argc, char* argv[] )
 
 	// To test, generate some nodes at first
 	Node* n;
-	for (int i = 0; i < 2000; i++) {
+	for (int i = 0; i < numberOfNodes; i++) {
 		try {
 			n = new Node();
 		} catch(std::bad_alloc& ba) {
@@ -70,7 +84,7 @@ bool AppInit( int argc, char* argv[] )
 /**
  * @brief main is just there to call AppInit.
  */
-int main(int argc, char** argv) 
+int main(int argc, char* argv[]) 
 {
 	if (!AppInit(argc, argv)) return -1;
 	return 0;
