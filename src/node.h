@@ -62,4 +62,17 @@ private:
 	int connectionsUsed;
 };
 
+/**
+ * @brief Represents an instance of the 'bitcoin-seeder'
+ */
+class DNSSeed 
+{
+public:
+	DNSSeed();
+	~DNSSeed();
+private:
+	std::vector<Node*> knownNodes;
+	std::vector<Node*> goodNodes;
+};
+
 #endif // NODE_H

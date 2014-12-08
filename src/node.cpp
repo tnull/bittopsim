@@ -83,3 +83,7 @@ struct sockaddr_in Node::generateRandomIP()
 	ip.sin_addr.s_addr = ul_dst;
 	return ip;
 }
+
+DNSSeed::DNSSeed()
+{
+}
