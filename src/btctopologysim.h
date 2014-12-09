@@ -14,7 +14,6 @@
 class BTCTopologySimulation
 {
 	public:
-
 		/**
 		 * @brief This is where the simultion starts.
 		 * @param number of nodes that should be spawned
@@ -28,9 +27,21 @@ class BTCTopologySimulation
 		 */
 		void bootstrapNode(Node& node);
 
+		/**
+		 * @brief return the current time of the simulation
+		 * @return current time of simulation
+		 */
+		static time_t getSimClock();
+
+		/**
+		 * @brief increases the simulation time by one second, aka "tick"
+		 * @return the increased time
+		 */
+		static time_t tickSimClock();
+		
 	private:
+		static time_t simClock; /// the current time for the simulation
 		std::vector<Node*> allNodes; /// all nodes spawned
-		time_t simClock; /// the current time for the simulation
 		std::unordered_map<time_t,int> spawnTimes; /// the times at which a node should be spawned and how many nodes per timeslot should be spawned
 };
 #endif //BTCTOPOLOGYSIM_H

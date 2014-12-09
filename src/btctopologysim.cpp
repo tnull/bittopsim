@@ -4,19 +4,21 @@
 #include "constants.h"
 
 
+time_t BTCTopologySimulation::simClock; /// the current time for the simulation
+
 BTCTopologySimulation::BTCTopologySimulation(int numberOfTestNodes, time_t simDuration)
 {
 	// init our time
-	simClock = time(NULL);
+	if (BTCTopologySimulation::simClock == 0) BTCTopologySimulation::simClock = time(NULL);
 
 	// time our sim should stop
-	time_t endTime = simClock + simDuration;
+	time_t endTime = getSimClock() + simDuration;
 
 	// generate spawn times:
 	spawnTimes.reserve(numberOfTestNodes);
 	time_t timeSlot;
 	for (int i = 0; i < numberOfTestNodes; ++i) {
-		timeSlot = (time_t) simClock + rand() % simDuration;
+		timeSlot = (time_t) getSimClock() + rand() % simDuration;
 		if(spawnTimes.find(timeSlot) != spawnTimes.end()) {
 			spawnTimes[timeSlot]++;
 		} else {
@@ -26,16 +28,16 @@ BTCTopologySimulation::BTCTopologySimulation(int numberOfTestNodes, time_t simDu
 	
 	// To test, generate some nodes at first
 	Node* n;
-	for (; simClock < endTime; ++simClock) {
+	for (; getSimClock() < endTime; tickSimClock()) {
 		// spawn Nodes
-		if(spawnTimes.find(simClock) != spawnTimes.end()) {
-			for(int i = 0; i < spawnTimes[simClock]; ++i) {
+		if(spawnTimes.find(getSimClock()) != spawnTimes.end()) {
+			for(int i = 0; i < spawnTimes[getSimClock()]; ++i) {
 				try {
 					n = new Node();
 				} catch(std::bad_alloc& ba) {
 					std::cerr << "Not enough memory: " << ba.what() << std::endl;
 				}
-				std::cout << simClock << ": Creating & bootstrapping Node " << n -> getID() << "." << std::endl;
+				LOG("Creating & bootstrapping Node " << n -> getID() << ".");
 				allNodes.push_back(n);
 				bootstrapNode(*n);
 			}
@@ -66,9 +68,16 @@ BTCTopologySimulation::~BTCTopologySimulation()
 	allNodes.clear();
 }
 
-/**
- * @brief main is just there to call AppInit.
- */
+time_t BTCTopologySimulation::getSimClock()
+{
+	return BTCTopologySimulation::simClock;
+}
+
+time_t BTCTopologySimulation::tickSimClock()
+{
+	return ++BTCTopologySimulation::simClock;
+}
+
 int main(int argc, char* argv[]) 
 {
 	// number of nodes to create
@@ -95,8 +104,6 @@ int main(int argc, char* argv[])
 	}
 	// seed random number generator
 	srand(time(nullptr));
-	std::cout << "Starting btctopologysim" << std::endl;
 	BTCTopologySimulation sim(numberOfNodes, simDuration);
 	return 0;
 }
-
