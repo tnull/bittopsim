@@ -5,12 +5,19 @@
 #ifndef NODE_H
 #define NODE_H
 
+#include <string>
 #include <vector>
+#include <memory>
 #include <netinet/in.h>
 
-class Node
+class BTCTopologySimulation;
+
+class Node : public std::enable_shared_from_this<Node>
 {
+
 public:
+	typedef std::shared_ptr<Node> ptr;
+	typedef std::vector<std::shared_ptr<Node>> vector;
 	/**
 	 * @brief initialize the Node
 	 */
@@ -21,25 +28,25 @@ public:
 	 * @brief connect this Node to another Node
 	 * @param node: the Node to connect to
 	 */
-	void connect(Node& node);
+	void connect(Node::ptr node);
 
 	/**
 	 * @brief disconnect this Node from another Node
 	 * @param node: the Node to disconnect from
 	 */
-	void disconnect(Node& node);
+	void disconnect(Node::ptr node);
 
 	/** 
 	 * @brief add a Node to our knownNodes list
 	 * @param node: the Node to add
 	 */
-	void addKnownNode(Node& node);
+	void addKnownNode(Node::ptr node);
 
 	/** 
 	 * @brief remove a Node from our knownNodes list
 	 * @param node: the Node to remove
 	 */
-	void removeKnownNode(Node& node);
+	void removeKnownNode(Node::ptr node);
 
 	/**
 	 * @brief receives an "addr" message
@@ -47,7 +54,7 @@ public:
 	 * @param node received from
 	 * @param vector of addresses
 	 */
-	void recvAddrMsg(Node& senderNode, std::vector<Node*> vAddr);
+	void recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr);
 
 
 	/**
@@ -55,45 +62,65 @@ public:
 	 * @param node received from
 	 * @return vector of addresses
 	 */
-	std::vector<Node*> recvGetaddrMsg();
+	Node::vector recvGetaddrMsg();
 
 	/**
 	 * returns the ID of the Node, aka converts the Node IP to a String ID
 	 */
-	std::string getID();
+	std::string getID() const;
+
+	inline bool operator==(const Node& n){return (this->getID() == n.getID());}
+	inline bool operator!=(const Node& n){return !(*this == n);}
 private:
 	/** 
 	 * @brief sends an "getaddr" message to the node
 	 * @param node to send to
 	 * @return vector of addresses
 	 */
-	std::vector<Node*> sendGetaddrMsg(Node& receiverNode);
+	Node::vector sendGetaddrMsg(Node::ptr receiverNode);
 
 	/** 
 	 * @brief sends an "addr" message to the node
 	 * @param node to send to
 	 * @param vector of addresses
 	 */
-	void sendAddrMsg(Node& receiverNode, std::vector<Node*> vAddr);
+	void sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr);
 
 	// generates a random IP, also used as ID for the clients
-	struct sockaddr_in generateRandomIP();
+	std::string generateRandomIP();
 
 	// the IP of the Node, also used as an ID
-	const struct sockaddr_in ipAddress;
+	std::string identifier;
 
 	// The connected Nodes:
-	std::vector<Node*> connectedNodes;
+	Node::vector connectedNodes;
 
 	// The known Nodes
-	std::vector<Node*> knownNodes;
+	Node::vector knownNodes;
 
 	// number of open connections
 	int connectionsUsed;
 
 	// vector to save if we already got "addr" message from this node
-	std::vector<Node *> gotAddrFromNode;
+	Node::vector gotAddrFromNode;
 };
+
+/*
+ * Utility functions related to the node class
+ */
+/** 
+ * @brief Checks if the node is in the given vector
+ * @param node to search
+ * @param vector to look in
+ */
+bool nodeInVector(Node::ptr node, Node::vector& vector);
+/**
+ * @brief Finds a node in the given vector
+ * @param node to find
+ * @param vector to look in
+ */
+Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector);
+
 
 /**
  * @brief Represents an instance of the 'bitcoin-seeder'
@@ -108,15 +135,15 @@ public:
 	 * @brief represents a query to the DNSSeeder
 	 * @return list of Nodes for bootstrapping
 	 */
-	std::vector<Node*> queryDNS();
+	Node::vector queryDNS();
 private:
 	void cacheHit(bool force = false); // a Node's query came in, so hit the cache, maybe rebuild
-	std::vector<Node*> knownNodes; // all Nodes known
-	std::vector<Node*> goodNodes; // only the good Nodes
-	std::vector<Node*> nodeCache; // current cache of nodes which will be delivered
+	Node::vector knownNodes; // all Nodes known
+	Node::vector goodNodes; // only the good Nodes
+	Node::vector nodeCache; // current cache of nodes which will be delivered
 	time_t cacheTime; // last time a cache was created
 	int cacheHits; // number of cache hits for this cache
-	Node* crawlerNode; // the Bitcoin Node of the seeder
+	Node::ptr crawlerNode; // the Bitcoin Node of the seeder
 };
 
 #endif // NODE_H

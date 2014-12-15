@@ -1,6 +1,5 @@
 #include "btctopologysim.h"
 #include <iostream>
-#include <vector>
 #include "constants.h"
 
 
@@ -27,36 +26,33 @@ BTCTopologySimulation::BTCTopologySimulation(int numberOfTestNodes, time_t simDu
 	}
 	
 	// To test, generate some nodes at first
-	Node* n;
 	for (; getSimClock() < endTime; tickSimClock()) {
 		// spawn Nodes
 		if(spawnTimes.find(getSimClock()) != spawnTimes.end()) {
 			for(int i = 0; i < spawnTimes[getSimClock()]; ++i) {
-				try {
-					n = new Node();
-				} catch(std::bad_alloc& ba) {
-					std::cerr << "Not enough memory: " << ba.what() << std::endl;
-				}
-				LOG("Creating & bootstrapping Node " << n -> getID() << ".");
+				auto n = std::make_shared<Node>();
+				LOG("Creating & bootstrapping Node " << n->getID() << ".");
 				allNodes.push_back(n);
-				bootstrapNode(*n);
+				bootstrapNode(n);
 			}
 		}
 	}
 }
 
-void BTCTopologySimulation::bootstrapNode(Node& node) 
+void BTCTopologySimulation::bootstrapNode(Node::ptr node) 
 {
 	// if allNodes is empty, do nothing
 	if(allNodes.empty()) return;
 
+	// get Minimum of MAXSEEDPEERS and allNodes.size() to determine to how many nodes we can connect
+	int numberOfConnections = MAXSEEDPEERS < (int) allNodes.size() ? MAXSEEDPEERS : (int) allNodes.size();
 	// Choose random Nodes of allNodes
 	int randomIndex;
-	for(int i = 0; i < MAXSEEDPEERS && i < (int) allNodes.size(); ++i) {
+	for(int i = 0; i < numberOfConnections; ++i) {
 		randomIndex = rand() % allNodes.size();
-		Node* n = allNodes.at(randomIndex);
-		node.addKnownNode(*n);
-		node.connect(*n);
+		Node::ptr n = allNodes.at(randomIndex);
+		node->connect(n);
+		node->addKnownNode(n);
 	}
 }
 
@@ -64,7 +60,6 @@ void BTCTopologySimulation::bootstrapNode(Node& node)
 BTCTopologySimulation::~BTCTopologySimulation()
 {
 	// clean up
-	for_each(allNodes.begin(), allNodes.end(), std::default_delete<Node>());
 	allNodes.clear();
 }
 
@@ -103,7 +98,7 @@ int main(int argc, char* argv[])
 			break;
 	}
 	// seed random number generator
-	srand(time(nullptr));
+	srand(time(NULL));
 	BTCTopologySimulation sim(numberOfNodes, simDuration);
 	return 0;
 }

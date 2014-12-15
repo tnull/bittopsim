@@ -9,7 +9,9 @@
 
 #include "node.h"
 #include <ctime>
+#include <memory>
 #include <unordered_map>
+
 
 class BTCTopologySimulation
 {
@@ -25,7 +27,7 @@ class BTCTopologySimulation
 		/**
 		 * bootstrap this Node with the hardcoded dnsseeds
 		 */
-		void bootstrapNode(Node& node);
+		void bootstrapNode(Node::ptr node);
 
 		/**
 		 * @brief return the current time of the simulation
@@ -38,10 +40,10 @@ class BTCTopologySimulation
 		 * @return the increased time
 		 */
 		static time_t tickSimClock();
-		
+
 	private:
 		static time_t simClock; /// the current time for the simulation
-		std::vector<Node*> allNodes; /// all nodes spawned
+		Node::vector allNodes; /// all nodes spawned
 		std::unordered_map<time_t,int> spawnTimes; /// the times at which a node should be spawned and how many nodes per timeslot should be spawned
 };
 #endif //BTCTOPOLOGYSIM_H
