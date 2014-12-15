@@ -21,7 +21,7 @@ class BTCTopologySimulation
 		 * @param number of nodes that should be spawned
 		 * @param the time the simulation should stop
 		 */
-		BTCTopologySimulation(int numberOfTestNodes, time_t endSimulationTime);
+		BTCTopologySimulation(unsigned int numberOfTestNodes, time_t endSimulationTime);
 		~BTCTopologySimulation();
 
 		/**
@@ -44,6 +44,6 @@ class BTCTopologySimulation
 	private:
 		static time_t simClock; /// the current time for the simulation
 		Node::vector allNodes; /// all nodes spawned
-		std::unordered_map<time_t,int> spawnTimes; /// the times at which a node should be spawned and how many nodes per timeslot should be spawned
+		std::unordered_map<time_t, unsigned int> spawnTimes; /// the times at which a node should be spawned and how many nodes per timeslot should be spawned
 };
 #endif //BTCTOPOLOGYSIM_H

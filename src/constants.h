@@ -1,7 +1,9 @@
 #ifndef CONSTANTS
 #define CONSTANTS
 
-#define LOG(msg) std::cout << BTCTopologySimulation::getSimClock() << ": " << msg << std::endl
+#include <iomanip>
+
+#define LOG(msg) std::cout << std::setw(10) << BTCTopologySimulation::getSimClock() << ": " << msg << std::endl
 /**
  * The maximum number of peers a new Node gets via bootstrapping
  */

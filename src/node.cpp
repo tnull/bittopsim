@@ -5,13 +5,9 @@
 #include <cstring>
 #include <arpa/inet.h>
 
-Node::Node() : identifier(generateRandomIP()), connectionsUsed(0)
-{
-}
+Node::Node() : identifier(generateRandomIP()), connectionsUsed(0) {}
 
-Node::~Node()
-{
-}
+Node::~Node() {}
 
 void Node::connect(Node::ptr node)
 {
@@ -28,7 +24,7 @@ void Node::connect(Node::ptr node)
 	if (!nodeInVector(node, connectedNodes)) {
 		connectedNodes.push_back(node);
 		connectionsUsed++;
-		LOG("Node " << this -> getID() << " --> " << node->getID() << "[" << connectionsUsed << "/" << MAXCONNECTEDPEERS << "]");
+		LOG("\tNode " << this -> getID() << " --> " << node->getID() << "[" << connectionsUsed << "/" << MAXCONNECTEDPEERS << "]");
 		node->connect(shared_from_this());
 	}
 }
@@ -124,6 +120,7 @@ std::string Node::getID() const
 
 std::string Node::generateRandomIP()
 {
+	// TODO: handle or avoid collisions of IDs/IPs
 	struct sockaddr_in ip;
 	unsigned char *p_ip;
 	unsigned long ul_dst;
@@ -139,10 +136,7 @@ std::string Node::generateRandomIP()
 	return result;
 }
 
-DNSSeeder::DNSSeeder()
-{
-	crawlerNode = std::make_shared<Node>();
-}
+DNSSeeder::DNSSeeder() : crawlerNode(std::make_shared<Node>()) {}
 
 Node::vector DNSSeeder::queryDNS()
 {
@@ -187,6 +181,4 @@ void DNSSeeder::cacheHit(bool force)
 	}
 }
 
-DNSSeeder::~DNSSeeder()
-{
-}
+DNSSeeder::~DNSSeeder() {}
