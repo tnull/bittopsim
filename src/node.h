@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 
 class BTCTopologySimulation;
+class DNSSeeder;
 
 class Node : public std::enable_shared_from_this<Node>
 {
@@ -21,14 +22,15 @@ public:
 	/**
 	 * @brief initialize the Node
 	 */
-	Node();
+	Node(BTCTopologySimulation* simCTX);
 	~Node();
 
 	/**
 	 * @brief connect this Node to another Node
 	 * @param node: the Node to connect to
+	 * @param fOneShot: connect only once, send addr, disconnect
 	 */
-	void connect(Node::ptr node);
+	void connect(Node::ptr node, bool fOneShot = false);
 
 	/**
 	 * @brief disconnect this Node from another Node
@@ -43,10 +45,23 @@ public:
 	void addKnownNode(Node::ptr node);
 
 	/** 
+	 * @brief add  Node::vector to our knownNodes list
+	 * @param nodes: the Node::vector to add
+	 */
+	void addKnownNodes(Node::vector& nodes);
+
+	/** 
 	 * @brief remove a Node from our knownNodes list
 	 * @param node: the Node to remove
 	 */
 	void removeKnownNode(Node::ptr node);
+
+
+	/**
+	 * @brief receives an "version" message
+	 * @param node received from
+	 */
+	void recvVersionMsg(Node::ptr senderNode);
 
 	/**
 	 * @brief receives an "addr" message
@@ -65,13 +80,33 @@ public:
 	Node::vector recvGetaddrMsg();
 
 	/**
-	 * returns the ID of the Node, aka converts the Node IP to a String ID
+	 * @brief returns the ID of the Node, aka converts the Node IP to a String ID
+	 * @return ID of Node
 	 */
 	std::string getID() const;
 
+	/**
+	 * @brief bootstrap this Node
+	 */
+	void bootstrap();
+
+	/**
+	 * @brief try to connect until we have
+	 */
+	void fillConnections();
+
 	inline bool operator==(const Node& n){return (this->getID() == n.getID());}
 	inline bool operator!=(const Node& n){return !(*this == n);}
+protected:
+
+	Node::vector knownNodes; // The known Nodes
+	BTCTopologySimulation* simCTX; // the simulation the DNSSeeder belongs to
 private:
+	/**
+	 * @brief sends an "version" message
+	 * @param node sent from
+	 */
+	void sendVersionMsg(Node::ptr receiverNode, bool fOneShot = false);
 	/** 
 	 * @brief sends an "getaddr" message to the node
 	 * @param node to send to
@@ -86,23 +121,12 @@ private:
 	 */
 	void sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr);
 
-	// generates a random IP, also used as ID for the clients
-	std::string generateRandomIP();
-
-	// the IP of the Node, also used as an ID
-	std::string identifier;
-
-	// The connected Nodes:
-	Node::vector connectedNodes;
-
-	// The known Nodes
-	Node::vector knownNodes;
-
-	// number of open connections
-	int connectionsUsed;
-
-	// vector to save if we already got "addr" message from this node
-	Node::vector gotAddrFromNode;
+	std::string generateRandomIP(); // generates a random IP, also used as ID for the clients
+	std::string identifier; // the IP of the Node, also used as an ID
+	Node::vector connections; // The connected Nodes:
+	Node::vector inboundConnections; // open inbound connections
+	Node::vector gotAddrFromNode; // vector to save if we already got "addr" message from this node
+	bool acceptInboundConnections; // does this node accept inbound connections?
 };
 
 /*
@@ -114,6 +138,7 @@ private:
  * @param vector to look in
  */
 bool nodeInVector(Node::ptr node, Node::vector& vector);
+
 /**
  * @brief Finds a node in the given vector
  * @param node to find
@@ -121,6 +146,19 @@ bool nodeInVector(Node::ptr node, Node::vector& vector);
  */
 Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector);
 
+/** 
+ * @brief represents a crawler node for the DNSSeeder
+ */
+class CrawlerNode : public Node {
+
+public:
+	typedef std::shared_ptr<CrawlerNode> ptr;
+	CrawlerNode(BTCTopologySimulation *simCTX);
+	~CrawlerNode();
+
+private:
+	Node::vector goodNodes; // only the good Nodes
+};
 
 /**
  * @brief Represents an instance of the 'bitcoin-seeder'
@@ -128,7 +166,10 @@ Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector);
 class DNSSeeder 
 {
 public:
-	DNSSeeder();
+	typedef std::shared_ptr<DNSSeeder> ptr;
+	typedef std::vector<std::shared_ptr<DNSSeeder>> vector;
+
+	DNSSeeder(BTCTopologySimulation* simCTX);
 	~DNSSeeder();
 
 	/**
@@ -136,14 +177,19 @@ public:
 	 * @return list of Nodes for bootstrapping
 	 */
 	Node::vector queryDNS();
+
+	/**
+	 * @brief Returns the crawler node
+	 * @return crawler node
+	 */
+	CrawlerNode::ptr getCrawlerNode();
 private:
 	void cacheHit(bool force = false); // a Node's query came in, so hit the cache, maybe rebuild
-	Node::vector knownNodes; // all Nodes known
-	Node::vector goodNodes; // only the good Nodes
 	Node::vector nodeCache; // current cache of nodes which will be delivered
 	time_t cacheTime; // last time a cache was created
 	int cacheHits; // number of cache hits for this cache
-	Node::ptr crawlerNode; // the Bitcoin Node of the seeder
+	CrawlerNode::ptr crawlerNode; // the Bitcoin Node of the seeder
+	BTCTopologySimulation* simCTX; // the simulation the DNSSeeder belongs to
 };
 
 #endif // NODE_H

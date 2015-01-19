@@ -7,62 +7,47 @@ time_t BTCTopologySimulation::simClock; /// the current time for the simulation
 
 BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfTestNodes, time_t simDuration)
 {
+
 	// time our sim should stop
 	time_t endTime = getSimClock() + simDuration;
 
 	// generate spawn times:
-	spawnTimes.reserve(numberOfTestNodes);
+	Node::ptr n;
 	time_t timeSlot;
 	for (unsigned int i = 0; i < numberOfTestNodes; ++i) {
-		timeSlot = (time_t) getSimClock() + rand() % simDuration;
-		if(spawnTimes.find(timeSlot) != spawnTimes.end()) {
-			spawnTimes[timeSlot]++;
-		} else {
-			spawnTimes[timeSlot] = 1;
+		try {
+			n = std::make_shared<Node>(this);
+		} catch(std::bad_alloc& ba) {
+			std::cerr << "Not enough memory: " << ba.what() << std::endl;
 		}
+		LOG("Creating Node " << n->getID() << ".");
+		timeSlot = (time_t) getSimClock() + rand() % simDuration;
+		bootSchedule[timeSlot].push_back(n);
+		allNodes.push_back(n);
 	}
+	seed = std::make_shared<DNSSeeder>(this);
 	
 	// To test, generate some nodes at first
-	Node::ptr n;
 	for (; getSimClock() < endTime; tickSimClock()) {
-		// spawn Nodes
-		if(spawnTimes.find(getSimClock()) != spawnTimes.end()) {
-			for(unsigned int i = 0; i < spawnTimes[getSimClock()]; ++i) {
-				try {
-					n = std::make_shared<Node>();
-				} catch(std::bad_alloc& ba) {
-					std::cerr << "Not enough memory: " << ba.what() << std::endl;
-				}
-				LOG("Creating & bootstrapping Node " << n->getID() << ".");
-				allNodes.push_back(n);
-				bootstrapNode(n);
-			}
+		for (Node::ptr node : bootSchedule[getSimClock()]) {
+			node -> bootstrap();
+		}
+
+		for (Node::ptr node : schedule[getSimClock()]) {
+			node -> fillConnections();
 		}
 	}
 }
-
-void BTCTopologySimulation::bootstrapNode(Node::ptr node) 
-{
-	// if allNodes is empty, do nothing
-	if(allNodes.empty()) return;
-
-	// get Minimum of MAXSEEDPEERS and allNodes.size() to determine to how many nodes we can connect
-	int numberOfConnections = MAXSEEDPEERS < allNodes.size() ? MAXSEEDPEERS : allNodes.size();
-	// Choose random Nodes of allNodes
-	int randomIndex;
-	for(int i = 0; i < numberOfConnections; ++i) {
-		randomIndex = rand() % allNodes.size();
-		Node::ptr n = allNodes.at(randomIndex);
-		node->connect(n);
-		node->addKnownNode(n);
-	}
-}
-
 
 BTCTopologySimulation::~BTCTopologySimulation()
 {
 	// clean up
 	allNodes.clear();
+}
+
+void BTCTopologySimulation::addToSchedule(Node::ptr node, time_t timeSlot)
+{
+	schedule[timeSlot].push_back(node);
 }
 
 time_t BTCTopologySimulation::getSimClock()
@@ -73,6 +58,16 @@ time_t BTCTopologySimulation::getSimClock()
 time_t BTCTopologySimulation::tickSimClock()
 {
 	return ++BTCTopologySimulation::simClock;
+}
+
+DNSSeeder::ptr BTCTopologySimulation::getDNSSeeder() 
+{
+	return seed;
+}
+
+Node::vector BTCTopologySimulation::getAllNodes() 
+{
+	return allNodes;
 }
 
 int main(int argc, char* argv[]) 
