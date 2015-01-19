@@ -25,19 +25,6 @@ public:
 	Node(BTCTopologySimulation* simCTX);
 	~Node();
 
-	/**
-	 * @brief connect this Node to another Node
-	 * @param node: the Node to connect to
-	 * @param fOneShot: connect only once, send addr, disconnect
-	 */
-	void connect(Node::ptr node, bool fOneShot = false);
-
-	/**
-	 * @brief disconnect this Node from another Node
-	 * @param node: the Node to disconnect from
-	 */
-	void disconnect(Node::ptr node);
-
 	/** 
 	 * @brief add a Node to our knownNodes list
 	 * @param node: the Node to add
