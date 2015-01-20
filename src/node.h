@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <unordered_map>
 #include <netinet/in.h>
 
 class BTCTopologySimulation;
@@ -19,6 +20,8 @@ class Node : public std::enable_shared_from_this<Node>
 public:
 	typedef std::shared_ptr<Node> ptr;
 	typedef std::vector<std::shared_ptr<Node>> vector;
+	typedef std::unordered_map<std::string, std::shared_ptr<Node>> map;
+
 	/**
 	 * @brief initialize the Node
 	 */
@@ -86,7 +89,7 @@ public:
 	inline bool operator!=(const Node& n){return !(*this == n);}
 protected:
 
-	Node::vector knownNodes; // The known Nodes
+	Node::map knownNodes; // The known Nodes
 	BTCTopologySimulation* simCTX; // the simulation the DNSSeeder belongs to
 private:
 	/**

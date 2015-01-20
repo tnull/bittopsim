@@ -33,7 +33,8 @@ void Node::sendVersionMsg(Node::ptr receiverNode, bool fOneShot)
 	}
 
 	receiverNode -> recvVersionMsg(shared_from_this());
-	sendAddrMsg(receiverNode, knownNodes);
+	// TODO: sendaddr
+	//sendAddrMsg(receiverNode, knownNodes);
 	Node::vector vNodes = sendGetaddrMsg(receiverNode);
 	addKnownNodes(vNodes);
 }
@@ -57,7 +58,10 @@ void Node::addKnownNode(Node::ptr node)
 	// TODO: introduce maximum for known Nodes?
 	
 	// if node is not in known Nodes, add it
-	if(!nodeInVector(node, knownNodes)) knownNodes.push_back(node);
+	auto it = knownNodes.find(node->getID());
+	if(it == knownNodes.end()) {
+		knownNodes[node->getID()] = node;
+	}
 }
 
 void Node::addKnownNodes(Node::vector& nodes)
@@ -70,7 +74,7 @@ void Node::addKnownNodes(Node::vector& nodes)
 void Node::removeKnownNode(Node::ptr node)
 {
 	// if node is in known Nodes, remove it
-	auto it = findNodeInVector(node, knownNodes);
+	auto it = knownNodes.find(node->getID());
 	if ( it != knownNodes.end()) {
 		knownNodes.erase(it);
 	}
@@ -122,7 +126,9 @@ Node::vector Node::recvGetaddrMsg() {
 	unsigned int randomIndex;
 	for (int i = 0; i < max; ++i) {
 		randomIndex = rand() % knownNodes.size();
-		result.push_back(knownNodes.at(randomIndex));
+		auto it = knownNodes.begin();
+		std::advance(it, randomIndex);
+		result.push_back(it -> second);
 	}
 	return result;
 }
@@ -153,7 +159,9 @@ void Node::fillConnections()
 	int randomIndex;
 	while (connections.size() < numberOfConnections) {
 		randomIndex = rand() % knownNodes.size();
-		Node::ptr n = knownNodes.at(randomIndex);
+		auto it = knownNodes.begin();
+		std::advance(it, randomIndex);
+		Node::ptr n = it->second;
 		sendVersionMsg(n);
 	}
 }

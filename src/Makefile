@@ -1,5 +1,5 @@
 CC = clang++
-CFLAGS = -Wall -g -std=c++11 -Wno-c++11-extensions -pedantic -W -Wextra
+CFLAGS = -O2 -Wall -g -std=c++11 -Wno-c++11-extensions -pedantic -W -Wextra
 SRCS = btctopologysim.cpp node.cpp
 OBJS = $(SRCS:.cpp=.o)
 MAIN = btctopologysim
