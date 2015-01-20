@@ -228,7 +228,7 @@ void DNSSeeder::cacheHit(bool force)
 		// if we have good nodes, add 1/2 * |goodNodes| random nodes
 		if (nodes.size() > 0) {
 			unsigned int size = nodes.size();
-			for(unsigned int i = 0; i < size / 2; i++) {
+			for(unsigned int i = 0; i < size / 2 && i < 1000; i++) {
 				Node::ptr n = randomNodeOfVector(nodes);
 				nodeCache.push_back(n);
 			}
