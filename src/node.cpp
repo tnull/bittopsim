@@ -5,12 +5,15 @@
 #include <cstring>
 #include <arpa/inet.h>
 
-Node::Node(BTCTopologySimulation *simCTX) : simCTX(simCTX), identifier(generateRandomIP()), acceptInboundConnections(true) {}
+Node::Node(BTCTopologySimulation *simCTX, bool acceptInboundConnections) : simCTX(simCTX), identifier(generateRandomIP()), acceptInboundConnections(acceptInboundConnections) {}
 
 Node::~Node() {}
 
 void Node::sendVersionMsg(Node::ptr receiverNode, bool fOneShot)
 {
+	// we can't reach the receiver
+	if(!receiverNode->isReachable()) return;
+
 	// don't connect to self
 	if (*receiverNode == *this) return;
 
@@ -52,6 +55,8 @@ void Node::recvVersionMsg(Node::ptr senderNode)
 
 void Node::addKnownNode(Node::ptr node)
 {
+	// don't add unreachable nodes
+	if (!node->isReachable()) return;
 	// don't add self
 	if (*node == *this) return;
 
@@ -176,6 +181,11 @@ void Node::fillConnections()
 	}
 }
 
+bool Node::isReachable()
+{
+	return acceptInboundConnections;
+}
+
 std::string Node::generateRandomIP()
 {
 	// TODO: handle or avoid collisions of IDs/IPs
@@ -230,6 +240,8 @@ void DNSSeeder::cacheHit(bool force)
 			unsigned int size = nodes.size();
 			for(unsigned int i = 0; i < size / 2 && i < 1000; i++) {
 				Node::ptr n = randomNodeOfVector(nodes);
+				//XXX: quickfix because we use allNodes, normally the dns seeder would never get the unreachable nodes
+				while(!n->isReachable()) n = randomNodeOfVector(nodes);
 				nodeCache.push_back(n);
 			}
 		}

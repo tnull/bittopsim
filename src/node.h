@@ -28,7 +28,7 @@ public:
 	/**
 	 * @brief initialize the Node
 	 */
-	Node(BTCTopologySimulation* simCTX);
+	Node(BTCTopologySimulation* simCTX, bool acceptInboundConnections = true);
 	~Node();
 
 	/** 
@@ -87,6 +87,11 @@ public:
 	 * @brief try to connect until we have
 	 */
 	void fillConnections();
+
+	/**
+	 * @brief returns if the node is reachable
+	 */
+	bool isReachable();
 
 	inline bool operator==(const Node& n){return (this->getID() == n.getID());}
 	inline bool operator!=(const Node& n){return !(*this == n);}
