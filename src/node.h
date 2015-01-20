@@ -14,6 +14,9 @@
 class BTCTopologySimulation;
 class DNSSeeder;
 
+/** 
+ * @brief represents a node of the bitcoin network
+ */
 class Node : public std::enable_shared_from_this<Node>
 {
 
@@ -105,6 +108,12 @@ private:
 	Node::vector sendGetaddrMsg(Node::ptr receiverNode);
 
 	/** 
+	 * @brief sends an "addr" message to the node, with up to 1000 knownNodes
+	 * @param node to send to
+	 */
+	void sendAddrMsg(Node::ptr receiverNode);
+	
+	/** 
 	 * @brief sends an "addr" message to the node
 	 * @param node to send to
 	 * @param vector of addresses
@@ -128,13 +137,6 @@ private:
  * @param vector to look in
  */
 bool nodeInVector(Node::ptr node, Node::vector& vector);
-
-/**
- * @brief Finds a node in the given vector
- * @param node to find
- * @param vector to look in
- */
-Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector);
 
 /** 
  * @brief represents a crawler node for the DNSSeeder
@@ -181,5 +183,26 @@ private:
 	CrawlerNode::ptr crawlerNode; // the Bitcoin Node of the seeder
 	BTCTopologySimulation* simCTX; // the simulation the DNSSeeder belongs to
 };
+
+/**
+ * @brief Finds a node in the given vector
+ * @param node to find
+ * @param vector to look in
+ */
+Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector);
+
+/**
+ * @brief returns a random Node out of a vector
+ * @param vector to look in
+ * @return random node
+ */
+Node::ptr randomNodeOfVector(Node::vector& v);
+
+/**
+ * @brief returns a random Node out of a map
+ * @param map to look in
+ * @return random node
+ */
+Node::ptr randomNodeOfMap(Node::map& m);
 
 #endif // NODE_H

@@ -80,7 +80,24 @@ void Node::removeKnownNode(Node::ptr node)
 	}
 }
 
-void Node::sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr)
+void Node::sendAddrMsg(Node::ptr receiverNode)
+{
+	// default for sending addr messages
+	unsigned int size = knownNodes.size();
+	unsigned int maxaddrs = size <= 1000 ? size : 1000;
+	Node::vector vAddr;
+	unsigned int count = 0;
+	while(count < maxaddrs) {
+		// fill vector with random known nodes, which aren't ourselves and aren't already in there
+		Node::ptr n = randomNodeOfMap(knownNodes);
+		while(*n == *receiverNode || nodeInVector(n, vAddr)) n = randomNodeOfMap(knownNodes);
+		vAddr.push_back(n);
+		count++;
+	}
+	sendAddrMsg(receiverNode, vAddr);
+}
+
+void Node::sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr) 
 {
 	receiverNode->recvAddrMsg(shared_from_this(), vAddr);
 }
@@ -98,8 +115,8 @@ void Node::recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr)
 		if(connections.size() > 0) {
 			//TODO do they check for duplicates?
 			for (short i = 0; i < 2; ++i) {
-				unsigned int index = rand() % connections.size();
-				sendAddrMsg(connections.at(index), vAddr);
+				Node::ptr n = randomNodeOfVector(connections);
+				sendAddrMsg(n, vAddr);
 			}
 		}
 
@@ -123,12 +140,9 @@ Node::vector Node::sendGetaddrMsg(Node::ptr receiverNode)
 Node::vector Node::recvGetaddrMsg() {
 	Node::vector result;
 	int max = 0.23 * knownNodes.size() < 2500 ? 0.23 * knownNodes.size() : 2500; // return 2500 addresses at maximum, else 23% of knownNodes
-	unsigned int randomIndex;
 	for (int i = 0; i < max; ++i) {
-		randomIndex = rand() % knownNodes.size();
-		auto it = knownNodes.begin();
-		std::advance(it, randomIndex);
-		result.push_back(it -> second);
+		Node::ptr n = randomNodeOfMap(knownNodes);
+		result.push_back(n);
 	}
 	return result;
 }
@@ -156,12 +170,8 @@ void Node::fillConnections()
 	unsigned int numberOfConnections = MAXOUTBOUNDPEERS < knownNodes.size() ? MAXOUTBOUNDPEERS : knownNodes.size();
 	
 	// Choose random Nodes of knownNodes
-	int randomIndex;
 	while (connections.size() < numberOfConnections) {
-		randomIndex = rand() % knownNodes.size();
-		auto it = knownNodes.begin();
-		std::advance(it, randomIndex);
-		Node::ptr n = it->second;
+		Node::ptr n = randomNodeOfMap(knownNodes);
 		sendVersionMsg(n);
 	}
 }
@@ -184,18 +194,6 @@ std::string Node::generateRandomIP()
 	return result;
 }
 
-Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector) 
-{
-	auto it = std::find_if(vector.begin(), vector.end(), [node](Node::ptr const p) {
-	    return (*p == *node);
-	});
-	return it;
-}
-
-bool nodeInVector(Node::ptr node, Node::vector& vector) 
-{
-	return findNodeInVector(node, vector) != vector.end();
-}
 
 CrawlerNode::CrawlerNode(BTCTopologySimulation* simCTX) : Node(simCTX) {}
 CrawlerNode::~CrawlerNode() {}
@@ -231,11 +229,38 @@ void DNSSeeder::cacheHit(bool force)
 		if (nodes.size() > 0) {
 			unsigned int size = nodes.size();
 			for(unsigned int i = 0; i < size / 2; i++) {
-				unsigned int index = rand() % size;
-				nodeCache.push_back(nodes.at(index));
+				Node::ptr n = randomNodeOfVector(nodes);
+				nodeCache.push_back(n);
 			}
 		}
 	}
 }
 
 DNSSeeder::~DNSSeeder() {}
+
+Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector) 
+{
+	auto it = std::find_if(vector.begin(), vector.end(), [node](Node::ptr const p) {
+	    return (*p == *node);
+	});
+	return it;
+}
+
+bool nodeInVector(Node::ptr node, Node::vector& vector) 
+{
+	return findNodeInVector(node, vector) != vector.end();
+}
+
+Node::ptr randomNodeOfVector(Node::vector& v)
+{
+	unsigned int randomIndex = rand() % v.size();
+	return v.at(randomIndex);
+}
+
+Node::ptr randomNodeOfMap(Node::map& m)
+{
+	unsigned int randomIndex = rand() % m.size();
+	auto it = m.begin();
+	std::advance(it, randomIndex);
+	return it -> second;
+}
