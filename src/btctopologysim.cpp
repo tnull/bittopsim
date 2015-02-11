@@ -54,14 +54,18 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	Graph g;
 	nodeVectorToGraph(allNodes, g);
 	std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
-	graph_attr["size"] = "3,3";
-	graph_attr["rankdir"] = "LR";
-	graph_attr["ratio"] = "fill";
-	vertex_attr["shape"] = "circle";
+	graph_attr["ratio"] = "auto";
+	edge_attr["arrowsize"] = ".3";
+	edge_attr["penwidth"] = ".3";
+	vertex_attr["shape"] = "point";
 
 	std::ofstream dot("graph.dot");
 	if(dot.is_open()) {
-		boost::write_graphviz(dot, g, boost::make_label_writer(boost::get(&VertexProperty::ID, g)));
+		boost::write_graphviz(dot, g, 
+				boost::make_label_writer(boost::get(&VertexProperty::ID, g)),
+				boost::default_writer(),
+				boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
+		);
 		dot.close();
 	}
 	
