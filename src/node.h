@@ -10,6 +10,9 @@
 #include <memory>
 #include <unordered_map>
 #include <netinet/in.h>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/labeled_graph.hpp>
+#include <boost/graph/graphviz.hpp>
 
 class BTCTopologySimulation;
 class DNSSeeder;
@@ -95,6 +98,12 @@ public:
 
 	inline bool operator==(const Node& n){return (this->getID() == n.getID());}
 	inline bool operator!=(const Node& n){return !(*this == n);}
+
+	/**
+	 * @brief returns connections, just for the graph
+	 * @return vector of connected nodes
+	 */
+	Node::vector getConnections();
 protected:
 
 	Node::map knownNodes; // The known Nodes
@@ -132,16 +141,6 @@ private:
 	Node::vector gotAddrFromNode; // vector to save if we already got "addr" message from this node
 	bool acceptInboundConnections; // does this node accept inbound connections?
 };
-
-/*
- * Utility functions related to the node class
- */
-/** 
- * @brief Checks if the node is in the given vector
- * @param node to search
- * @param vector to look in
- */
-bool nodeInVector(Node::ptr node, Node::vector& vector);
 
 /** 
  * @brief represents a crawler node for the DNSSeeder
@@ -189,6 +188,16 @@ private:
 	BTCTopologySimulation* simCTX; // the simulation the DNSSeeder belongs to
 };
 
+/****************************************************
+ * Utility functions related to the node class
+****************************************************/
+/** 
+ * @brief Checks if the node is in the given vector
+ * @param node to search
+ * @param vector to look in
+ */
+bool nodeInVector(Node::ptr node, Node::vector& vector);
+
 /**
  * @brief Finds a node in the given vector
  * @param node to find
@@ -209,5 +218,22 @@ Node::ptr randomNodeOfVector(Node::vector& v);
  * @return random node
  */
 Node::ptr randomNodeOfMap(Node::map& m);
+
+
+
+typedef struct VertexProperty {
+   std::string ID;
+ } VertexProperty;
+typedef boost::labeled_graph<boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, VertexProperty>, std::string> Graph;
+
+typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+
+
+/**
+ * @brief generates a boost Graph from a node vector
+ * @param node vector to use
+ * @return graph
+ */
+void nodeVectorToGraph(Node::vector& nodes, Graph& g);
 
 #endif // NODE_H

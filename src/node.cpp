@@ -186,6 +186,12 @@ bool Node::isReachable()
 	return acceptInboundConnections;
 }
 
+
+Node::vector Node::getConnections()
+{
+	return connections;
+}
+
 std::string Node::generateRandomIP()
 {
 	// TODO: handle or avoid collisions of IDs/IPs
@@ -275,4 +281,17 @@ Node::ptr randomNodeOfMap(Node::map& m)
 	auto it = m.begin();
 	std::advance(it, randomIndex);
 	return it -> second;
+}
+
+void nodeVectorToGraph(Node::vector& nodes, Graph& g)
+{
+	for(Node::ptr from : nodes) {
+		Vertex u = boost::add_vertex(from->getID(), g);
+		g[from->getID()].ID = from->getID();
+		for(Node::ptr to : from->getConnections()) {
+			Vertex v = boost::add_vertex(to->getID(), g);
+			g[to->getID()].ID = from->getID();
+			boost::add_edge(u, v, g);
+		}
+	}
 }
