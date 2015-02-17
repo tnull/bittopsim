@@ -60,6 +60,16 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	ClusteringMap cm(coefs, g);
 	float cc = boost::all_clustering_coefficients(g.graph(), cm);
 	LOG("The clustering coefficient is: " << cc);
+
+	// calculate mean geodesic path
+	WeightMap wm(boost::get(&EdgeProperty::probability, g));
+	DistanceMatrix distances(boost::num_vertices(g));
+    DistanceMatrixMap dm(distances, g);
+	boost::floyd_warshall_all_pairs_shortest_paths(g.graph(), dm, weight_map(wm));
+	GeodesicContainer geodesic(boost::num_vertices(g));
+	GeodesicMap geodesicMap(geodesic, g);
+	float mean_geodesic = boost::all_mean_geodesics(g.graph(), dm, geodesicMap);
+	LOG("The mean geodesic distance is: " << mean_geodesic);
 	
 	// write the graph
 	std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;

@@ -13,8 +13,10 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/labeled_graph.hpp>
 #include <boost/graph/graphviz.hpp>
-#include <boost/graph/clustering_coefficient.hpp>
+#include <boost/graph/clustering_coefficient.hpp> // for clustering
 #include <boost/graph/exterior_property.hpp>
+#include <boost/graph/floyd_warshall_shortest.hpp>
+#include <boost/graph/geodesic_distance.hpp>
 
 class BTCTopologySimulation;
 class DNSSeeder;
@@ -232,8 +234,12 @@ Node::ptr randomNodeOfMap(Node::map& m);
 typedef struct VertexProperty {
    std::string ID;
  } VertexProperty;
+
+typedef struct EdgeProperty {
+	float probability = 1.0;
+ } EdgeProperty;
 // TODO sollte der graph wirklich undirected sein? in einem netzwerk ist das ok?
-typedef boost::labeled_graph<boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, VertexProperty>, std::string> Graph;
+typedef boost::labeled_graph<boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty>, std::string> Graph;
 
 typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
 
@@ -242,6 +248,14 @@ typedef boost::exterior_vertex_property<Graph, float> ClusteringProperty;
 typedef ClusteringProperty::container_type ClusteringContainer;
 typedef ClusteringProperty::map_type ClusteringMap;
 
+// for geodesic mean path
+typedef boost::exterior_vertex_property<Graph, float> DistanceProperty;
+typedef DistanceProperty::matrix_type DistanceMatrix;
+typedef DistanceProperty::matrix_map_type DistanceMatrixMap;
+typedef boost::exterior_vertex_property<Graph, float> GeodesicProperty;
+typedef GeodesicProperty::container_type GeodesicContainer;
+typedef GeodesicProperty::map_type GeodesicMap;
+typedef boost::property_map<Graph, float EdgeProperty::*>::type WeightMap;
 /**
  * @brief generates a boost Graph from a node vector
  * @param node vector to use
