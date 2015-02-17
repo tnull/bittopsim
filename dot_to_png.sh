@@ -1,6 +1,6 @@
 SIMCMD=./src/btctopologysim
-DOTCMDS=(dot neato twopi circo fdp sfdp osage)
-#DOTCMDS=(neato twopi fdp sfdp)
+#DOTCMDS=(dot neato twopi circo fdp sfdp osage)
+DOTCMDS=(neato twopi fdp sfdp)
 GRAPHFOLDER=./graphs
 GRAPHFILE=$GRAPHFOLDER/graph.gv
 SIMTIME=86400
