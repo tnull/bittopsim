@@ -21,7 +21,7 @@ class BTCTopologySimulation
 		 * @param number of nodes that should be spawned
 		 * @param the time the simulation should stop
 		 */
-		BTCTopologySimulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t endSimulationTime);
+		BTCTopologySimulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t endSimulationTime, std::string graphFilePath);
 		~BTCTopologySimulation();
 
 		/**

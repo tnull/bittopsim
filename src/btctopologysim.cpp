@@ -5,7 +5,7 @@
 
 time_t BTCTopologySimulation::simClock; /// the current time for the simulation
 
-BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t simDuration)
+BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t simDuration, std::string graphFilePath)
 {
 
 	// time our sim should stop
@@ -55,18 +55,18 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	nodeVectorToGraph(allNodes, g);
 	std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
 	graph_attr["ratio"] = "auto";
-	edge_attr["arrowsize"] = ".3";
-	edge_attr["penwidth"] = ".3";
+	edge_attr["arrowsize"] = "0.3";
+	edge_attr["penwidth"] = "0.3";
 	vertex_attr["shape"] = "point";
 
-	std::ofstream dot("graph.dot");
-	if(dot.is_open()) {
-		boost::write_graphviz(dot, g, 
+	std::ofstream graphFile(graphFilePath);
+	if(graphFile.is_open()) {
+		boost::write_graphviz(graphFile, g, 
 				boost::make_label_writer(boost::get(&VertexProperty::ID, g)),
 				boost::default_writer(),
 				boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
 		);
-		dot.close();
+		graphFile.close();
 	}
 	
 }
@@ -113,29 +113,30 @@ int main(int argc, char* argv[])
 	// duration of the simulation
 	int simDuration = 86400;
 
+	// outpath for the graph
+	std::string graphFilePath = "./graph.gv";
+
 	// check arguments
 	switch(argc) {
+		case 5: 
+			graphFilePath = argv[4];
 		case 4: 
-				numberOfServerNodes = std::stol(argv[1]);
-				numberOfClientNodes = std::stoi(argv[2]);
 				simDuration = std::stoi(argv[3]);
-				break;
 		case 3: 
-				numberOfServerNodes = std::stoi(argv[1]);
 				numberOfClientNodes = std::stoi(argv[2]);
-				break;
 		case 2: 
 				numberOfServerNodes = std::stoi(argv[1]);
 				break;
 		case 1:
 		default:
-			std::cout << "usage: " << argv[0] << " number_of_server_nodes [number_of_client_nodes] [duration_of_simulation]" << std::endl;
+			std::cout << "usage: " << argv[0] << " number_of_server_nodes [number_of_client_nodes] [duration_of_simulation] [graphviz graph file path]" << std::endl;
 			std::cout << "the duration should be provided in seconds, default is 86400 (one day)" << std::endl;
+			std::cout << "the default file path for the graph is ./graph.gv" << std::endl;
 			return 0;
 			break;
 	}
 	// seed random number generator
 	srand(time(NULL));
-	BTCTopologySimulation sim(numberOfServerNodes, numberOfClientNodes, simDuration);
+	BTCTopologySimulation sim(numberOfServerNodes, numberOfClientNodes, simDuration, graphFilePath);
 	return 0;
 }
