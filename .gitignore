@@ -4,3 +4,5 @@ src/*.o
 src/Makefile.bak
 src/btctopologysim
 doc/*
+.DS_Store
+graphs
