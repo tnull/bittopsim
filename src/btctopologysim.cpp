@@ -59,17 +59,30 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	ClusteringContainer coefs(boost::num_vertices(g));
 	ClusteringMap cm(coefs, g);
 	float cc = boost::all_clustering_coefficients(g.graph(), cm);
-	LOG("The clustering coefficient is: " << cc);
+	std::cout << std::endl << std::endl;
+	std::cout << "\t\tStatistics!" << std::endl;
+	std::cout << "\t\t-----------" << std::endl;
+	std::cout << "The clustering coefficient is: " << cc << std::endl;
 
 	// calculate mean geodesic path
 	WeightMap wm(boost::get(&EdgeProperty::probability, g));
 	DistanceMatrix distances(boost::num_vertices(g));
     DistanceMatrixMap dm(distances, g);
+
 	boost::floyd_warshall_all_pairs_shortest_paths(g.graph(), dm, weight_map(wm));
 	GeodesicContainer geodesic(boost::num_vertices(g));
 	GeodesicMap geodesicMap(geodesic, g);
 	float mean_geodesic = boost::all_mean_geodesics(g.graph(), dm, geodesicMap);
-	LOG("The mean geodesic distance is: " << mean_geodesic);
+	std::cout << "The mean geodesic distance is: " << mean_geodesic << std::endl;
+
+	// calculate the diameter:
+	unsigned long max_distance = 0;
+	for(unsigned long i = 0; i < boost::num_vertices(g); ++i) {
+		for(unsigned long j = 0; j < boost::num_vertices(g); ++j) {
+			if(distances[i][j] > max_distance) max_distance = distances[i][j];
+		}
+	}
+	std::cout << "The graph diameter is: " << max_distance << std::endl;
 	
 	// write the graph
 	std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
