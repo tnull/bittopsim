@@ -12,7 +12,6 @@
 #include <memory>
 #include <unordered_map>
 
-
 class BTCTopologySimulation
 {
 	public:

@@ -51,8 +51,17 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 		}
 	}
 
+	// generate the graph
 	Graph g;
 	nodeVectorToGraph(allNodes, g);
+
+	// calculate clustering coefs
+	ClusteringContainer coefs(boost::num_vertices(g));
+	ClusteringMap cm(coefs, g);
+	float cc = boost::all_clustering_coefficients(g.graph(), cm);
+	LOG("The clustering coefficient is: " << cc);
+	
+	// write the graph
 	std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
 	graph_attr["ratio"] = "auto";
 	edge_attr["arrowsize"] = "0.3";
@@ -131,7 +140,7 @@ int main(int argc, char* argv[])
 		default:
 			std::cout << "usage: " << argv[0] << " number_of_server_nodes [number_of_client_nodes] [duration_of_simulation] [graphviz graph file path]" << std::endl;
 			std::cout << "the duration should be provided in seconds, default is 86400 (one day)" << std::endl;
-			std::cout << "the default file path for the graph is ./graph.gv" << std::endl;
+			std::cout << "the default file path for the graph is \"./graph.gv\"" << std::endl;
 			return 0;
 			break;
 	}

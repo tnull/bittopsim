@@ -28,6 +28,7 @@ void Node::sendVersionMsg(Node::ptr receiverNode, bool fOneShot)
 		// if we already have an inbound connection, change it to outbound...
 		auto it = findNodeInVector(receiverNode, inboundConnections);
 		if (it != inboundConnections.end()) {
+			// TODO: does this work??
 			inboundConnections.erase(it);
 		}
 		connections.push_back(receiverNode);
@@ -192,6 +193,11 @@ Node::vector Node::getConnections()
 	return connections;
 }
 
+Node::vector Node::getInboundConnections()
+{
+	return inboundConnections;
+}
+
 std::string Node::generateRandomIP()
 {
 	// TODO: handle or avoid collisions of IDs/IPs
@@ -285,13 +291,31 @@ Node::ptr randomNodeOfMap(Node::map& m)
 
 void nodeVectorToGraph(Node::vector& nodes, Graph& g)
 {
-	for(Node::ptr from : nodes) {
-		Vertex u = boost::add_vertex(from->getID(), g);
-		g[from->getID()].ID = from->getID();
-		for(Node::ptr to : from->getConnections()) {
+	for(Node::ptr node : nodes) {
+		//add vertex
+		Vertex u = boost::add_vertex(node->getID(), g);
+		g[node->getID()].ID = node->getID();
+
+		// for outgoing connections
+		for(Node::ptr to : node->getConnections()) {
+			// add to the graph
 			Vertex v = boost::add_vertex(to->getID(), g);
-			g[to->getID()].ID = from->getID();
-			boost::add_edge(u, v, g);
+			g[to->getID()].ID = to->getID();
+			// check if edge doesn't exist yet, then add it
+			if(!boost::edge(u,v,g).second) {
+				boost::add_edge(u, v, g);
+			}
+		}
+
+		// for inbound connections
+		for(Node::ptr from : node->getInboundConnections()) {
+			// add to the graph
+			Vertex v = boost::add_vertex(from->getID(), g);
+			g[from->getID()].ID = from->getID();
+			// check if edge doesn't exist yet, then add it
+			if(!boost::edge(v, u, g).second) {
+				boost::add_edge(v, u, g);
+			}
 		}
 	}
 }

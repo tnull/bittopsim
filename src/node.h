@@ -13,6 +13,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/labeled_graph.hpp>
 #include <boost/graph/graphviz.hpp>
+#include <boost/graph/clustering_coefficient.hpp>
+#include <boost/graph/exterior_property.hpp>
 
 class BTCTopologySimulation;
 class DNSSeeder;
@@ -104,6 +106,12 @@ public:
 	 * @return vector of connected nodes
 	 */
 	Node::vector getConnections();
+
+	/**
+	 * @brief returns inbound connections, just for the graph
+	 * @return vector of connected nodes
+	 */
+	Node::vector getInboundConnections();
 protected:
 
 	Node::map knownNodes; // The known Nodes
@@ -224,10 +232,15 @@ Node::ptr randomNodeOfMap(Node::map& m);
 typedef struct VertexProperty {
    std::string ID;
  } VertexProperty;
-typedef boost::labeled_graph<boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, VertexProperty>, std::string> Graph;
+// TODO sollte der graph wirklich undirected sein? in einem netzwerk ist das ok?
+typedef boost::labeled_graph<boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, VertexProperty>, std::string> Graph;
 
 typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
 
+// for the clustering coefs
+typedef boost::exterior_vertex_property<Graph, float> ClusteringProperty;
+typedef ClusteringProperty::container_type ClusteringContainer;
+typedef ClusteringProperty::map_type ClusteringMap;
 
 /**
  * @brief generates a boost Graph from a node vector
