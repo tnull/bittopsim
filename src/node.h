@@ -28,12 +28,14 @@ class Node : public std::enable_shared_from_this<Node>
 {
 
 public:
-	typedef std::shared_ptr<Node> ptr;
-	typedef std::vector<std::shared_ptr<Node>> vector;
-	typedef std::unordered_map<std::string, std::shared_ptr<Node>> map;
+	typedef std::shared_ptr<Node> ptr; //!< a shared_ptr of type Node.
+	typedef std::vector<std::shared_ptr<Node>> vector; //!< a vector of Nodes. 
+	typedef std::unordered_map<std::string, std::shared_ptr<Node>> map; //!< a map which maps strings to Nodes (meant to use the Node-IDs).
 
 	/**
 	 * @brief initialize the Node
+	 * \param simCTX: a pointer to the simulation this Node belongs to.
+	 * \param acceptInboundConnections: decides if the Node will be a client or a server, defaults to server.
 	 */
 	Node(BTCTopologySimulation* simCTX, bool acceptInboundConnections = true);
 	~Node();
@@ -59,23 +61,22 @@ public:
 
 	/**
 	 * @brief receives an "version" message
-	 * @param node received from
+	 * @param senderNode is the node we received the message from.
 	 */
 	void recvVersionMsg(Node::ptr senderNode);
 
 	/**
 	 * @brief receives an "addr" message
 	 * This function receives "addr" messages from another Node. This will forward the received vAddr to _two_ connected Nodes and save them if the node doesn't have enough yet.
-	 * @param node received from
-	 * @param vector of addresses
+	 * @param senderNode is the node we received the message from.
+	 * @param vAddr is a Node::vector of addresses
 	 */
 	void recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr);
 
 
 	/**
 	 * @brief receives an "getaddr" message
-	 * @param node received from
-	 * @return vector of addresses
+	 * @return Node::vector of addresses
 	 */
 	Node::vector recvGetaddrMsg();
 
@@ -100,8 +101,8 @@ public:
 	 */
 	bool isReachable();
 
-	inline bool operator==(const Node& n){return (this->getID() == n.getID());}
-	inline bool operator!=(const Node& n){return !(*this == n);}
+	inline bool operator==(const Node& n){return (this->getID() == n.getID());} //!< checks if Nodes are the same by comparing their IDs.
+	inline bool operator!=(const Node& n){return !(*this == n);} //!< checks if Nodes are not the same by negating the result of the == op. 
 
 	/**
 	 * @brief returns connections, just for the graph
@@ -116,40 +117,48 @@ public:
 	Node::vector getInboundConnections();
 protected:
 
-	Node::map knownNodes; // The known Nodes
-	BTCTopologySimulation* simCTX; // the simulation the DNSSeeder belongs to
+	Node::map knownNodes; //!< The known Nodes of this Node
+	BTCTopologySimulation* simCTX; //!< the simulation the DNSSeeder belongs to
 private:
 	/**
 	 * @brief sends an "version" message
-	 * @param node sent from
+	 * @param receiverNode is the Node the message will be sent to
+	 * @param fOneShot defines if the local Node will really connect, or if it just connects for addr/getaddr
+	 * \todo How is fOneShot really defined??
 	 */
 	void sendVersionMsg(Node::ptr receiverNode, bool fOneShot = false);
+
 	/** 
 	 * @brief sends an "getaddr" message to the node
-	 * @param node to send to
-	 * @return vector of addresses
+	 * @param receiverNode is the Node the message will be sent to
+	 * @return Node::vector of addresses
 	 */
 	Node::vector sendGetaddrMsg(Node::ptr receiverNode);
 
 	/** 
 	 * @brief sends an "addr" message to the node, with up to 1000 knownNodes
-	 * @param node to send to
+	 * @param receiverNode to send to
 	 */
 	void sendAddrMsg(Node::ptr receiverNode);
 	
 	/** 
 	 * @brief sends an "addr" message to the node
-	 * @param node to send to
-	 * @param vector of addresses
+	 * @param receiverNode is the Node the message will be sent to.
+	 * @param vAddr is the Node::vector of addresses which will be sent to receiverNode.
 	 */
 	void sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr);
 
-	std::string generateRandomIP(); // generates a random IP, also used as ID for the clients
-	std::string identifier; // the IP of the Node, also used as an ID
-	Node::vector connections; // The connected Nodes:
-	Node::vector inboundConnections; // open inbound connections
-	Node::vector gotAddrFromNode; // vector to save if we already got "addr" message from this node
-	bool acceptInboundConnections; // does this node accept inbound connections?
+	/**
+	 * \brief generates a random IP, also used as ID for the clients
+	 * \return std::string with the ID
+	 */
+	std::string generateRandomIP(); 
+
+	std::string identifier; //!< the IP of the Node, also used as an ID
+	Node::vector connections; //!< The connected (outbound) Nodes
+	Node::vector inboundConnections; //!< open inbound connections
+	Node::vector gotAddrFromNode; //!< vector to save if we already got "addr" message from this node
+	bool acceptInboundConnections; //!< does this node accept inbound connections?
 };
 
 /** 
@@ -158,12 +167,17 @@ private:
 class CrawlerNode : public Node {
 
 public:
-	typedef std::shared_ptr<CrawlerNode> ptr;
+	typedef std::shared_ptr<CrawlerNode> ptr; //!< a shared_ptr of type CrawlerNode.
+
+	/**
+	 * @brief Constructor for the CrawlerNode
+	 * @param simCTX: a pointer to the simulation which spawned it.
+	 */
 	CrawlerNode(BTCTopologySimulation *simCTX);
 	~CrawlerNode();
 
 private:
-	Node::vector goodNodes; // only the good Nodes
+	Node::vector goodNodes; //!< only the good Nodes \todo implement goodNodes!
 };
 
 /**
@@ -172,9 +186,13 @@ private:
 class DNSSeeder 
 {
 public:
-	typedef std::shared_ptr<DNSSeeder> ptr;
-	typedef std::vector<std::shared_ptr<DNSSeeder>> vector;
+	typedef std::shared_ptr<DNSSeeder> ptr; //!< A shared_ptr to the DNSSeeder
+	typedef std::vector<std::shared_ptr<DNSSeeder>> vector; //!< A vector of shared_ptrs to the DNSSeeder
 
+	/**
+	 * \brief Constructor of the DNSSeeder
+	 * \param simCTX: a pointer to the simulation the seeder belongs to.
+	 */
 	DNSSeeder(BTCTopologySimulation* simCTX);
 	~DNSSeeder();
 
@@ -190,12 +208,12 @@ public:
 	 */
 	CrawlerNode::ptr getCrawlerNode();
 private:
-	void cacheHit(bool force = false); // a Node's query came in, so hit the cache, maybe rebuild
-	Node::vector nodeCache; // current cache of nodes which will be delivered
-	time_t cacheTime; // last time a cache was created
-	int cacheHits; // number of cache hits for this cache
-	CrawlerNode::ptr crawlerNode; // the Bitcoin Node of the seeder
-	BTCTopologySimulation* simCTX; // the simulation the DNSSeeder belongs to
+	void cacheHit(bool force = false); //!< a Node's query came in, so hit the cache, maybe rebuild
+	Node::vector nodeCache; //!< current cache of nodes which will be delivered
+	time_t cacheTime; //!< last time a cache was created
+	int cacheHits; //!< number of cache hits for this cache
+	CrawlerNode::ptr crawlerNode; //!< the Bitcoin Node of the seeder
+	BTCTopologySimulation* simCTX; //!< the simulation the DNSSeeder belongs to
 };
 
 /****************************************************
@@ -231,13 +249,19 @@ Node::ptr randomNodeOfMap(Node::map& m);
 
 
 
+/*!
+ * \brief Properties which represent an vertex of the graph.
+ */
 typedef struct VertexProperty {
  } VertexProperty;
 
+/*!
+ * \brief Properties which represent an edge of the graph.
+ */
 typedef struct EdgeProperty {
-	float probability = 1.0;
+	float probability = 1.0; //!< propability to choose this edge (for the weight map / floyd-warshall).
  } EdgeProperty;
-// TODO sollte der graph wirklich undirected sein? in einem netzwerk ist das ok?
+
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty> Graph;
 
 typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
