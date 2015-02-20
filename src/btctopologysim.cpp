@@ -61,65 +61,67 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	Graph randomGraph;
 	boost::random::mt19937 rng;
 	boost::generate_random_graph(randomGraph, num_vertices(g), num_edges(g), rng, true, false);
-	std::cout << "num_edges" << num_edges(g) << std::endl;
+
+	// start the calculations and print the results
+	calculateAndPrintData(g, randomGraph);
+	
+	// write the graph
+	writeGraphs(g, randomGraph, graphFilePath);
+}
 
 
+BTCTopologySimulation::~BTCTopologySimulation()
+{
+	// clean up
+	allNodes.clear();
+}
+
+void BTCTopologySimulation::addToSchedule(Node::ptr node, time_t timeSlot)
+{
+	schedule[timeSlot].push_back(node);
+}
+
+time_t BTCTopologySimulation::getSimClock()
+{
+	return BTCTopologySimulation::simClock;
+}
+
+time_t BTCTopologySimulation::tickSimClock()
+{
+	return ++BTCTopologySimulation::simClock;
+}
+
+void BTCTopologySimulation::calculateAndPrintData(Graph& g, Graph& randomGraph)
+{
 	// calculate clustering coefs
-	ClusteringContainer coefs(boost::num_vertices(g));
-	ClusteringContainer randomCoefs(boost::num_vertices(randomGraph));
+	float cc =calculateClustering(g);
+	float randomCC = calculateClustering(randomGraph);
 
-	ClusteringMap cm(coefs, g);
-	ClusteringMap randomCM(randomCoefs, randomGraph);
+	// calculate mean geodesic path
+	DistanceMatrix distances = calculateDistances(g);
+	DistanceMatrix randomDistances = calculateDistances(g);
 
-	float cc = boost::all_clustering_coefficients(g, cm);
-	float randomCC = boost::all_clustering_coefficients(randomGraph, randomCM);
+	float meanGeodesic = calculateMeanGeodesic(g, distances);
+	float randomMeanGeodesic = calculateMeanGeodesic(randomGraph, randomDistances);
+
+	// calculate the diameter:
+	unsigned long diameter = calculateDiameter(g, distances);
+	unsigned long randomDiameter = calculateDiameter(randomGraph, randomDistances);
+
+	// print results:
 	std::cout << std::endl << std::endl;
 	std::cout << "\t\tStatistics!" << std::endl;
 	std::cout << "\t\t-----------" << std::endl;
 	std::cout << std::setw(20) << "" << "\t | " << std::setw(10) << "Bitcoin" << " | " << std::setw(10) << "Random Graph" << std::endl;
 	std::cout << std::setw(20) << "Clustering Coef" << "\t | " << std::setw(10) << cc << " | " << std::setw(10) << randomCC << std::endl;
 
-	// calculate mean geodesic path
-	WeightMap wm(boost::get(&EdgeProperty::probability, g));
-	WeightMap randomWM(boost::get(&EdgeProperty::probability, randomGraph));
+	std::cout << std::setw(20) << "Mean Geodesic Dist" << "\t | " << std::setw(10) << meanGeodesic << " | " << std::setw(10) << randomMeanGeodesic << std::endl;
 
-	DistanceMatrix distances(boost::num_vertices(g));
-	DistanceMatrix randomDistances(boost::num_vertices(randomGraph));
+	std::cout << std::setw(20) << "Diameter" << "\t | " << std::setw(10) << diameter << " | " << std::setw(10) << randomDiameter << std::endl;
+}
 
-    DistanceMatrixMap dm(distances, g);
-    DistanceMatrixMap randomDM(randomDistances, randomGraph);
-
-	boost::floyd_warshall_all_pairs_shortest_paths(g, dm, weight_map(wm));
-	boost::floyd_warshall_all_pairs_shortest_paths(randomGraph, randomDM, weight_map(randomWM));
-
-	GeodesicContainer geodesic(boost::num_vertices(g));
-	GeodesicContainer randomGeodesic(boost::num_vertices(randomGraph));
-
-	GeodesicMap gm(geodesic, g);
-	GeodesicMap randomGM(randomGeodesic, randomGraph);
-
-	float mean_geodesic = boost::all_mean_geodesics(g, dm, gm);
-	float random_mean_geodesic = boost::all_mean_geodesics(randomGraph, randomDM, randomGM);
-	std::cout << std::setw(20) << "Mean Geodesic Dist" << "\t | " << std::setw(10) << mean_geodesic << " | " << std::setw(10) << random_mean_geodesic << std::endl;
-
-	// calculate the diameter:
-	unsigned long maxDistance = 0;
-	for(unsigned long i = 0; i < boost::num_vertices(g); ++i) {
-		for(unsigned long j = 0; j < boost::num_vertices(g); ++j) {
-			if(distances[i][j] > maxDistance) maxDistance = distances[i][j];
-		}
-	}
-	
-	// calculate the diameter:
-	unsigned long randomMaxDistance = 0;
-	for(unsigned long i = 0; i < boost::num_vertices(randomGraph); ++i) {
-		for(unsigned long j = 0; j < boost::num_vertices(randomGraph); ++j) {
-			if(randomDistances[i][j] > randomMaxDistance) randomMaxDistance = randomDistances[i][j];
-		}
-	}
-	std::cout << std::setw(20) << "Diameter" << "\t | " << std::setw(10) << maxDistance << " | " << std::setw(10) << randomMaxDistance << std::endl;
-	
-	// write the graph
+void BTCTopologySimulation::writeGraphs(Graph& g, Graph& randomGraph, std::string graphFilePath)
+{
 	std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
 	graph_attr["ratio"] = "auto";
 	edge_attr["arrowsize"] = "0.3";
@@ -144,28 +146,45 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 		);
 		randomGraphFile.close();
 	}
-	
 }
 
-BTCTopologySimulation::~BTCTopologySimulation()
+float BTCTopologySimulation::calculateClustering(Graph& g)
 {
-	// clean up
-	allNodes.clear();
+	ClusteringContainer coefs(boost::num_vertices(g));
+
+	ClusteringMap cm(coefs, g);
+
+	float cc = boost::all_clustering_coefficients(g, cm);
+	return cc;
 }
 
-void BTCTopologySimulation::addToSchedule(Node::ptr node, time_t timeSlot)
+DistanceMatrix BTCTopologySimulation::calculateDistances(Graph& g)
 {
-	schedule[timeSlot].push_back(node);
+	WeightMap wm(boost::get(&EdgeProperty::probability, g));
+	DistanceMatrix distances(boost::num_vertices(g));
+    DistanceMatrixMap dm(distances, g);
+	boost::floyd_warshall_all_pairs_shortest_paths(g, dm, weight_map(wm));
+	return distances;
 }
 
-time_t BTCTopologySimulation::getSimClock()
+float BTCTopologySimulation::calculateMeanGeodesic(Graph& g, DistanceMatrix& distances)
 {
-	return BTCTopologySimulation::simClock;
+    DistanceMatrixMap dm(distances, g);
+	GeodesicContainer geodesic(boost::num_vertices(g));
+	GeodesicMap gm(geodesic, g);
+	float mean_geodesic = boost::all_mean_geodesics(g, dm, gm);
+	return mean_geodesic;
 }
 
-time_t BTCTopologySimulation::tickSimClock()
+unsigned long BTCTopologySimulation::calculateDiameter(Graph& g, DistanceMatrix& distances)
 {
-	return ++BTCTopologySimulation::simClock;
+	unsigned long maxDistance = 0;
+	for(unsigned long i = 0; i < boost::num_vertices(g); ++i) {
+		for(unsigned long j = 0; j < boost::num_vertices(g); ++j) {
+			if(distances[i][j] > maxDistance) maxDistance = distances[i][j];
+		}
+	}
+	return maxDistance;
 }
 
 DNSSeeder::ptr BTCTopologySimulation::getDNSSeeder() 

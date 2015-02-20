@@ -58,6 +58,26 @@ class BTCTopologySimulation
 		 */
 		Node::vector getAllNodes();
 	private:
+
+		/** @brief calculate and print the data analysis */
+		void calculateAndPrintData(Graph& g, Graph& randomGraph);
+
+		/** @brief write the graphs to a graphviz file */
+		void writeGraphs(Graph& g, Graph& randomGraph, std::string graphFilePath);
+
+		/** @brief calculates the clustering coefficient of a graph */
+		float calculateClustering(Graph& g);
+
+		/** @brief calculate all distances between vertices of a graph */
+		DistanceMatrix calculateDistances(Graph& g);
+
+		/** @brief calculate the mean geodesic path of a graph */
+		float calculateMeanGeodesic(Graph& g, DistanceMatrix& distances);
+
+		/** @brief calculate the diameter of a graph */
+		unsigned long calculateDiameter(Graph& g, DistanceMatrix& distances);
+
+
 		static time_t simClock; /// the current time for the simulation
 		DNSSeeder::ptr seed; /// the DNSSeeder
 		Node::vector allNodes; /// all nodes spawned
