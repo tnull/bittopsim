@@ -30,6 +30,7 @@ class Node : public std::enable_shared_from_this<Node>
 public:
 	typedef std::shared_ptr<Node> ptr; //!< a shared_ptr of type Node.
 	typedef std::vector<std::shared_ptr<Node>> vector; //!< a vector of Nodes. 
+	typedef std::deque<std::shared_ptr<Node>> deque; //!< a deque of Nodes. 
 	typedef std::unordered_map<std::string, std::shared_ptr<Node>> map; //!< a map which maps strings to Nodes (meant to use the Node-IDs).
 
 	/*!
@@ -175,6 +176,11 @@ public:
 	 */
 	CrawlerNode(BTCTopologySimulation *simCTX);
 	~CrawlerNode();
+
+	/*!
+	 * \brief Accessor to the goodNodes
+	 */
+	Node::vector getGoodNodes();
 
 private:
 	Node::vector goodNodes; //!< only the good Nodes \todo implement goodNodes!

@@ -199,7 +199,7 @@ Node::vector Node::getInboundConnections()
 
 std::string Node::generateRandomIP()
 {
-	//! \constraint The program doesn't check for IP/ID collisions, as these are 32 bit values and internally they are not used to distinguish nodes, this shouldn't be a problem.
+	//! \constraint The program doesn't check for IP/ID collisions, as these are 32 bit values, this shouldn't be a problem.
 	struct sockaddr_in ip;
 	unsigned char *p_ip;
 	unsigned long ul_dst;
@@ -216,8 +216,21 @@ std::string Node::generateRandomIP()
 }
 
 
-CrawlerNode::CrawlerNode(BTCTopologySimulation* simCTX) : Node(simCTX) {}
+CrawlerNode::CrawlerNode(BTCTopologySimulation* simCTX) : Node(simCTX) 
+{
+	// fill our goodNodes with all reachable nodes for bootstrap.
+	//! \constraint We assume that bootstrapping by iterating over all nodes is ok.
+	Node::vector nodes = simCTX -> getAllNodes();
+	for(Node::ptr node : nodes) {
+		if(node->isReachable()) goodNodes.push_back(node);
+	}
+}
 CrawlerNode::~CrawlerNode() {}
+Node::vector CrawlerNode::getGoodNodes() 
+{
+	return goodNodes;
+}
+
 DNSSeeder::DNSSeeder(BTCTopologySimulation* simCTX) : cacheHits(0), crawlerNode(std::make_shared<CrawlerNode>(simCTX)), simCTX(simCTX) 
 {
 	// force building the cache after starting
@@ -237,7 +250,7 @@ CrawlerNode::ptr DNSSeeder::getCrawlerNode()
 
 void DNSSeeder::cacheHit(bool force)
 {
-	Node::vector nodes = simCTX -> getAllNodes();
+	Node::vector goodNodes = crawlerNode->getGoodNodes();
 	int cacheSize = nodeCache.size();
 	time_t now = BTCTopologySimulation::getSimClock();
 	cacheHits++;
@@ -247,12 +260,13 @@ void DNSSeeder::cacheHit(bool force)
 		cacheHits = 0;
 		cacheTime = now;
 		// if we have good nodes, add 1/2 * |goodNodes| random nodes
-		if (nodes.size() > 0) {
-			unsigned int size = nodes.size();
+		if (goodNodes.size() > 0) {
+			unsigned int size = goodNodes.size();
+
 			for(unsigned int i = 0; i < size / 2 && i < 1000; i++) {
-				Node::ptr n = randomNodeOfVector(nodes);
-				//! \todo: quickfix because we use allNodes, normally the dns seeder would never get the unreachable nodes
-				while(!n->isReachable()) n = randomNodeOfVector(nodes);
+				Node::ptr n = randomNodeOfVector(goodNodes);
+				//! \todo: quickfix, after implementing goodNodes, nodes should check themselves before connecting!!
+				while(!n->isReachable()) n = randomNodeOfVector(goodNodes);
 				nodeCache.push_back(n);
 			}
 		}
