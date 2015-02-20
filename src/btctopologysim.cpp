@@ -1,6 +1,8 @@
 #include "btctopologysim.h"
 #include <iostream>
 #include "constants.h"
+#include <boost/graph/random.hpp> // for the random graph
+#include <boost/random/mersenne_twister.hpp> // for the random number generator
 
 
 time_t BTCTopologySimulation::simClock; /// the current time for the simulation
@@ -55,34 +57,67 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	Graph g(allNodes.size());
 	nodeVectorToGraph(allNodes, g);
 
+	// generate random graph for comparison
+	Graph randomGraph;
+	boost::random::mt19937 rng;
+	boost::generate_random_graph(randomGraph, num_vertices(g), num_edges(g), rng, true, false);
+	std::cout << "num_edges" << num_edges(g) << std::endl;
+
+
 	// calculate clustering coefs
 	ClusteringContainer coefs(boost::num_vertices(g));
+	ClusteringContainer randomCoefs(boost::num_vertices(randomGraph));
+
 	ClusteringMap cm(coefs, g);
+	ClusteringMap randomCM(randomCoefs, randomGraph);
+
 	float cc = boost::all_clustering_coefficients(g, cm);
+	float randomCC = boost::all_clustering_coefficients(randomGraph, randomCM);
 	std::cout << std::endl << std::endl;
 	std::cout << "\t\tStatistics!" << std::endl;
 	std::cout << "\t\t-----------" << std::endl;
-	std::cout << "The clustering coefficient is: " << cc << std::endl;
+	std::cout << std::setw(20) << "" << "\t | " << std::setw(10) << "Bitcoin" << " | " << std::setw(10) << "Random Graph" << std::endl;
+	std::cout << std::setw(20) << "Clustering Coef" << "\t | " << std::setw(10) << cc << " | " << std::setw(10) << randomCC << std::endl;
 
 	// calculate mean geodesic path
 	WeightMap wm(boost::get(&EdgeProperty::probability, g));
+	WeightMap randomWM(boost::get(&EdgeProperty::probability, randomGraph));
+
 	DistanceMatrix distances(boost::num_vertices(g));
+	DistanceMatrix randomDistances(boost::num_vertices(randomGraph));
+
     DistanceMatrixMap dm(distances, g);
+    DistanceMatrixMap randomDM(randomDistances, randomGraph);
 
 	boost::floyd_warshall_all_pairs_shortest_paths(g, dm, weight_map(wm));
+	boost::floyd_warshall_all_pairs_shortest_paths(randomGraph, randomDM, weight_map(randomWM));
+
 	GeodesicContainer geodesic(boost::num_vertices(g));
-	GeodesicMap geodesicMap(geodesic, g);
-	float mean_geodesic = boost::all_mean_geodesics(g, dm, geodesicMap);
-	std::cout << "The mean geodesic distance is: " << mean_geodesic << std::endl;
+	GeodesicContainer randomGeodesic(boost::num_vertices(randomGraph));
+
+	GeodesicMap gm(geodesic, g);
+	GeodesicMap randomGM(randomGeodesic, randomGraph);
+
+	float mean_geodesic = boost::all_mean_geodesics(g, dm, gm);
+	float random_mean_geodesic = boost::all_mean_geodesics(randomGraph, randomDM, randomGM);
+	std::cout << std::setw(20) << "Mean Geodesic Dist" << "\t | " << std::setw(10) << mean_geodesic << " | " << std::setw(10) << random_mean_geodesic << std::endl;
 
 	// calculate the diameter:
-	unsigned long max_distance = 0;
+	unsigned long maxDistance = 0;
 	for(unsigned long i = 0; i < boost::num_vertices(g); ++i) {
 		for(unsigned long j = 0; j < boost::num_vertices(g); ++j) {
-			if(distances[i][j] > max_distance) max_distance = distances[i][j];
+			if(distances[i][j] > maxDistance) maxDistance = distances[i][j];
 		}
 	}
-	std::cout << "The graph diameter is: " << max_distance << std::endl;
+	
+	// calculate the diameter:
+	unsigned long randomMaxDistance = 0;
+	for(unsigned long i = 0; i < boost::num_vertices(randomGraph); ++i) {
+		for(unsigned long j = 0; j < boost::num_vertices(randomGraph); ++j) {
+			if(randomDistances[i][j] > randomMaxDistance) randomMaxDistance = randomDistances[i][j];
+		}
+	}
+	std::cout << std::setw(20) << "Diameter" << "\t | " << std::setw(10) << maxDistance << " | " << std::setw(10) << randomMaxDistance << std::endl;
 	
 	// write the graph
 	std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
@@ -92,6 +127,7 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	vertex_attr["shape"] = "point";
 
 	std::ofstream graphFile(graphFilePath);
+	std::ofstream randomGraphFile(graphFilePath+=".random.gv");
 	if(graphFile.is_open()) {
 		boost::write_graphviz(graphFile, g, 
 				boost::default_writer(),
@@ -99,6 +135,14 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 				boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
 		);
 		graphFile.close();
+	}
+	if(randomGraphFile.is_open()) {
+		boost::write_graphviz(randomGraphFile, randomGraph, 
+				boost::default_writer(),
+				boost::default_writer(),
+				boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
+		);
+		randomGraphFile.close();
 	}
 	
 }
