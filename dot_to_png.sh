@@ -16,5 +16,6 @@ for i in ${SIMCLTNODES[*]}; do
 	for j in ${DOTCMDS[*]}; do
 		echo "\tRunning $j:"
 		$j -Tpng -Gsize=9,15\! -Gdpi=100 $GRAPHFILE -o $GRAPHFOLDER/$i-$j.png
+		$j -Tpng -Gsize=9,15\! -Gdpi=100 $GRAPHFILE.random.gv -o $GRAPHFOLDER/$i-$j.random.png
 	done
 done
