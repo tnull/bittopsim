@@ -28,7 +28,7 @@ void Node::sendVersionMsg(Node::ptr receiverNode, bool fOneShot)
 		// if we already have an inbound connection, change it to outbound...
 		auto it = findNodeInVector(receiverNode, inboundConnections);
 		if (it != inboundConnections.end()) {
-			//! @todo does this work??
+			//! \todo does this work??
 			inboundConnections.erase(it);
 		}
 		connections.push_back(receiverNode);
@@ -37,7 +37,7 @@ void Node::sendVersionMsg(Node::ptr receiverNode, bool fOneShot)
 	}
 
 	receiverNode -> recvVersionMsg(shared_from_this());
-	//! @todo sendaddr //sendAddrMsg(receiverNode, knownNodes);
+	//! \todo sendaddr //sendAddrMsg(receiverNode, knownNodes);
 	Node::vector vNodes = sendGetaddrMsg(receiverNode);
 	addKnownNodes(vNodes);
 }
@@ -50,7 +50,7 @@ void Node::recvVersionMsg(Node::ptr senderNode)
 		}
 	} 
 	addKnownNode(senderNode);
-	//! @todo schedule here?
+	//! \todo schedule here?
 }
 
 void Node::addKnownNode(Node::ptr node)
@@ -60,7 +60,7 @@ void Node::addKnownNode(Node::ptr node)
 	// don't add self
 	if (*node == *this) return;
 
-	//! @todo introduce maximum for known Nodes?
+	//! \todo introduce maximum for known Nodes?
 	
 	// if node is not in known Nodes, add it
 	auto it = knownNodes.find(node->getID());
@@ -109,8 +109,8 @@ void Node::sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr)
 
 void Node::recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr)
 {
-	//! @todo: implement and use timestamps. "lastSeen" for Nodes. We should only forward addrs younger than 10 minutes here.	
-	//! @todo: send to the same nodes for 24h
+	//! \todo: implement and use timestamps. "lastSeen" for Nodes. We should only forward addrs younger than 10 minutes here.	
+	//! \todo: send to the same nodes for 24h
 	
 	// if we haven't got an "addr" message from this node, do something
 	if(!nodeInVector(senderNode, gotAddrFromNode)) {
@@ -118,14 +118,14 @@ void Node::recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr)
 
 		// send to two random connected Nodes
 		if(connections.size() > 0) {
-			//! @todo do they check for duplicates?
+			//! \todo do they check for duplicates?
 			for (short i = 0; i < 2; ++i) {
 				Node::ptr n = randomNodeOfVector(connections);
 				sendAddrMsg(n, vAddr);
 			}
 		}
 
-		//! @todo: maybe check if in our nets at some point?
+		//! \todo: maybe check if in our nets at some point?
 		addKnownNodes(vAddr);
 	}
 }
@@ -134,7 +134,7 @@ Node::vector Node::sendGetaddrMsg(Node::ptr receiverNode)
 {
 	Node::vector result;
 	// check if we already got addr message from the receiverNode
-	//! @todo: check if this is correct, return empty vector if we already asked this node?
+	//! \todo: check if this is correct, return empty vector if we already asked this node?
 	if(!nodeInVector(receiverNode, gotAddrFromNode)) {
 		gotAddrFromNode.push_back(receiverNode);
 		result = receiverNode -> recvGetaddrMsg();
@@ -162,7 +162,7 @@ void Node::bootstrap()
 	LOG("Bootstrapping Node " << getID() << ".");
 	DNSSeeder::ptr seed = simCTX->getDNSSeeder();
 	sendVersionMsg(seed->getCrawlerNode(), true);
-	//! @todo: when exactly do nodes send addr/getaddr?
+	//! \todo: when exactly do nodes send addr/getaddr?
 	Node::vector nodesFromSeeds = seed->queryDNS();
 	addKnownNodes(nodesFromSeeds);
 	fillConnections();
@@ -251,7 +251,7 @@ void DNSSeeder::cacheHit(bool force)
 			unsigned int size = nodes.size();
 			for(unsigned int i = 0; i < size / 2 && i < 1000; i++) {
 				Node::ptr n = randomNodeOfVector(nodes);
-				//! @todo: quickfix because we use allNodes, normally the dns seeder would never get the unreachable nodes
+				//! \todo: quickfix because we use allNodes, normally the dns seeder would never get the unreachable nodes
 				while(!n->isReachable()) n = randomNodeOfVector(nodes);
 				nodeCache.push_back(n);
 			}

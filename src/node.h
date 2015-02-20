@@ -1,5 +1,5 @@
-/**
- * @brief Node represents a bitcoin peer/node
+/*!
+ * \brief Node represents a bitcoin peer/node
  */
 
 #ifndef NODE_H
@@ -21,8 +21,8 @@
 class BTCTopologySimulation;
 class DNSSeeder;
 
-/** 
- * @brief represents a node of the bitcoin network
+/*! 
+ * \brief represents a node of the bitcoin network
  */
 class Node : public std::enable_shared_from_this<Node>
 {
@@ -32,87 +32,87 @@ public:
 	typedef std::vector<std::shared_ptr<Node>> vector; //!< a vector of Nodes. 
 	typedef std::unordered_map<std::string, std::shared_ptr<Node>> map; //!< a map which maps strings to Nodes (meant to use the Node-IDs).
 
-	/**
-	 * @brief initialize the Node
+	/*!
+	 * \brief initialize the Node
 	 * \param simCTX: a pointer to the simulation this Node belongs to.
 	 * \param acceptInboundConnections: decides if the Node will be a client or a server, defaults to server.
 	 */
 	Node(BTCTopologySimulation* simCTX, bool acceptInboundConnections = true);
 	~Node();
 
-	/** 
-	 * @brief add a Node to our knownNodes list
-	 * @param node: the Node to add
+	/*! 
+	 * \brief add a Node to our knownNodes list
+	 * \param node: the Node to add
 	 */
 	void addKnownNode(Node::ptr node);
 
-	/** 
-	 * @brief add  Node::vector to our knownNodes list
-	 * @param nodes: the Node::vector to add
+	/*! 
+	 * \brief add  Node::vector to our knownNodes list
+	 * \param nodes: the Node::vector to add
 	 */
 	void addKnownNodes(Node::vector& nodes);
 
-	/** 
-	 * @brief remove a Node from our knownNodes list
-	 * @param node: the Node to remove
+	/*! 
+	 * \brief remove a Node from our knownNodes list
+	 * \param node: the Node to remove
 	 */
 	void removeKnownNode(Node::ptr node);
 
 
-	/**
-	 * @brief receives an "version" message
-	 * @param senderNode is the node we received the message from.
+	/*!
+	 * \brief receives an "version" message
+	 * \param senderNode is the node we received the message from.
 	 */
 	void recvVersionMsg(Node::ptr senderNode);
 
-	/**
-	 * @brief receives an "addr" message
+	/*!
+	 * \brief receives an "addr" message
 	 * This function receives "addr" messages from another Node. This will forward the received vAddr to _two_ connected Nodes and save them if the node doesn't have enough yet.
-	 * @param senderNode is the node we received the message from.
-	 * @param vAddr is a Node::vector of addresses
+	 * \param senderNode is the node we received the message from.
+	 * \param vAddr is a Node::vector of addresses
 	 */
 	void recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr);
 
 
-	/**
-	 * @brief receives an "getaddr" message
-	 * @return Node::vector of addresses
+	/*!
+	 * \brief receives an "getaddr" message
+	 * \return Node::vector of addresses
 	 */
 	Node::vector recvGetaddrMsg();
 
-	/**
-	 * @brief returns the ID of the Node, aka converts the Node IP to a String ID
-	 * @return ID of Node
+	/*!
+	 * \brief returns the ID of the Node, aka converts the Node IP to a String ID
+	 * \return ID of Node
 	 */
 	std::string getID() const;
 
-	/**
-	 * @brief bootstrap this Node
+	/*!
+	 * \brief bootstrap this Node
 	 */
 	void bootstrap();
 
-	/**
-	 * @brief try to connect until we have
+	/*!
+	 * \brief try to connect until we have
 	 */
 	void fillConnections();
 
-	/**
-	 * @brief returns if the node is reachable
+	/*!
+	 * \brief returns if the node is reachable
 	 */
 	bool isReachable();
 
 	inline bool operator==(const Node& n){return (this->getID() == n.getID());} //!< checks if Nodes are the same by comparing their IDs.
 	inline bool operator!=(const Node& n){return !(*this == n);} //!< checks if Nodes are not the same by negating the result of the == op. 
 
-	/**
-	 * @brief returns connections, just for the graph
-	 * @return vector of connected nodes
+	/*!
+	 * \brief returns connections, just for the graph
+	 * \return vector of connected nodes
 	 */
 	Node::vector getConnections();
 
-	/**
-	 * @brief returns inbound connections, just for the graph
-	 * @return vector of connected nodes
+	/*!
+	 * \brief returns inbound connections, just for the graph
+	 * \return vector of connected nodes
 	 */
 	Node::vector getInboundConnections();
 protected:
@@ -120,35 +120,35 @@ protected:
 	Node::map knownNodes; //!< The known Nodes of this Node
 	BTCTopologySimulation* simCTX; //!< the simulation the DNSSeeder belongs to
 private:
-	/**
-	 * @brief sends an "version" message
-	 * @param receiverNode is the Node the message will be sent to
-	 * @param fOneShot defines if the local Node will really connect, or if it just connects for addr/getaddr
+	/*!
+	 * \brief sends an "version" message
+	 * \param receiverNode is the Node the message will be sent to
+	 * \param fOneShot defines if the local Node will really connect, or if it just connects for addr/getaddr
 	 * \todo How is fOneShot really defined??
 	 */
 	void sendVersionMsg(Node::ptr receiverNode, bool fOneShot = false);
 
-	/** 
-	 * @brief sends an "getaddr" message to the node
-	 * @param receiverNode is the Node the message will be sent to
-	 * @return Node::vector of addresses
+	/*! 
+	 * \brief sends an "getaddr" message to the node
+	 * \param receiverNode is the Node the message will be sent to
+	 * \return Node::vector of addresses
 	 */
 	Node::vector sendGetaddrMsg(Node::ptr receiverNode);
 
-	/** 
-	 * @brief sends an "addr" message to the node, with up to 1000 knownNodes
-	 * @param receiverNode to send to
+	/*! 
+	 * \brief sends an "addr" message to the node, with up to 1000 knownNodes
+	 * \param receiverNode to send to
 	 */
 	void sendAddrMsg(Node::ptr receiverNode);
 	
-	/** 
-	 * @brief sends an "addr" message to the node
-	 * @param receiverNode is the Node the message will be sent to.
-	 * @param vAddr is the Node::vector of addresses which will be sent to receiverNode.
+	/*! 
+	 * \brief sends an "addr" message to the node
+	 * \param receiverNode is the Node the message will be sent to.
+	 * \param vAddr is the Node::vector of addresses which will be sent to receiverNode.
 	 */
 	void sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr);
 
-	/**
+	/*!
 	 * \brief generates a random IP, also used as ID for the clients
 	 * \return std::string with the ID
 	 */
@@ -161,17 +161,17 @@ private:
 	bool acceptInboundConnections; //!< does this node accept inbound connections?
 };
 
-/** 
- * @brief represents a crawler node for the DNSSeeder
+/*! 
+ * \brief represents a crawler node for the DNSSeeder
  */
 class CrawlerNode : public Node {
 
 public:
 	typedef std::shared_ptr<CrawlerNode> ptr; //!< a shared_ptr of type CrawlerNode.
 
-	/**
-	 * @brief Constructor for the CrawlerNode
-	 * @param simCTX: a pointer to the simulation which spawned it.
+	/*!
+	 * \brief Constructor for the CrawlerNode
+	 * \param simCTX: a pointer to the simulation which spawned it.
 	 */
 	CrawlerNode(BTCTopologySimulation *simCTX);
 	~CrawlerNode();
@@ -180,8 +180,8 @@ private:
 	Node::vector goodNodes; //!< only the good Nodes \todo implement goodNodes!
 };
 
-/**
- * @brief Represents an instance of the 'bitcoin-seeder'
+/*!
+ * \brief Represents an instance of the 'bitcoin-seeder'
  */
 class DNSSeeder 
 {
@@ -189,22 +189,22 @@ public:
 	typedef std::shared_ptr<DNSSeeder> ptr; //!< A shared_ptr to the DNSSeeder
 	typedef std::vector<std::shared_ptr<DNSSeeder>> vector; //!< A vector of shared_ptrs to the DNSSeeder
 
-	/**
+	/*!
 	 * \brief Constructor of the DNSSeeder
 	 * \param simCTX: a pointer to the simulation the seeder belongs to.
 	 */
 	DNSSeeder(BTCTopologySimulation* simCTX);
 	~DNSSeeder();
 
-	/**
-	 * @brief represents a query to the DNSSeeder
-	 * @return list of Nodes for bootstrapping
+	/*!
+	 * \brief represents a query to the DNSSeeder
+	 * \return list of Nodes for bootstrapping
 	 */
 	Node::vector queryDNS();
 
-	/**
-	 * @brief Returns the crawler node
-	 * @return crawler node
+	/*!
+	 * \brief Returns the crawler node
+	 * \return crawler node
 	 */
 	CrawlerNode::ptr getCrawlerNode();
 private:
@@ -216,34 +216,31 @@ private:
 	BTCTopologySimulation* simCTX; //!< the simulation the DNSSeeder belongs to
 };
 
-/****************************************************
- * Utility functions related to the node class
-****************************************************/
-/** 
- * @brief Checks if the node is in the given vector
- * @param node to search
- * @param vector to look in
+/*! 
+ * \brief Checks if the node is in the given vector
+ * \param node to search
+ * \param vector to look in
  */
 bool nodeInVector(Node::ptr node, Node::vector& vector);
 
-/**
- * @brief Finds a node in the given vector
- * @param node to find
- * @param vector to look in
+/*!
+ * \brief Finds a node in the given vector
+ * \param node to find
+ * \param vector to look in
  */
 Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector);
 
-/**
- * @brief returns a random Node out of a vector
- * @param vector to look in
- * @return random node
+/*!
+ * \brief returns a random Node out of a vector
+ * \param vector to look in
+ * \return random node
  */
 Node::ptr randomNodeOfVector(Node::vector& v);
 
-/**
- * @brief returns a random Node out of a map
- * @param map to look in
- * @return random node
+/*!
+ * \brief returns a random Node out of a map
+ * \param map to look in
+ * \return random node
  */
 Node::ptr randomNodeOfMap(Node::map& m);
 
@@ -279,10 +276,10 @@ typedef boost::exterior_vertex_property<Graph, float> GeodesicProperty;
 typedef GeodesicProperty::container_type GeodesicContainer;
 typedef GeodesicProperty::map_type GeodesicMap;
 typedef boost::property_map<Graph, float EdgeProperty::*>::type WeightMap;
-/**
- * @brief generates a boost Graph from a node vector
- * @param node vector to use
- * @return graph
+/*!
+ * \brief generates a boost Graph from a node vector
+ * \param node vector to use
+ * \return graph
  */
 void nodeVectorToGraph(Node::vector& nodes, Graph& g);
 
