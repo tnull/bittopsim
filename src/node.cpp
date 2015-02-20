@@ -291,16 +291,19 @@ Node::ptr randomNodeOfMap(Node::map& m)
 
 void nodeVectorToGraph(Node::vector& nodes, Graph& g)
 {
-	for(Node::ptr node : nodes) {
+	for(unsigned int index = 0; index < nodes.size(); ++index) {
 		//add vertex
-		Vertex u = boost::add_vertex(node->getID(), g);
-		g[node->getID()].ID = node->getID();
+		Vertex u = boost::vertex(index, g);
 
 		// for outgoing connections
-		for(Node::ptr to : node->getConnections()) {
+		for(Node::ptr to : nodes.at(index)->getConnections()) {
+			// find the node in allnodes
+			auto pos = findNodeInVector(to, nodes);
+			unsigned int toIndex = std::distance(nodes.begin(), pos);
+
 			// add to the graph
-			Vertex v = boost::add_vertex(to->getID(), g);
-			g[to->getID()].ID = to->getID();
+			Vertex v = boost::vertex(toIndex, g);
+
 			// check if edge doesn't exist yet, then add it
 			if(!boost::edge(u,v,g).second) {
 				boost::add_edge(u, v, g);
@@ -308,10 +311,14 @@ void nodeVectorToGraph(Node::vector& nodes, Graph& g)
 		}
 
 		// for inbound connections
-		for(Node::ptr from : node->getInboundConnections()) {
+		for(Node::ptr from : nodes.at(index)->getInboundConnections()) {
+			// find the node in allnodes
+			auto pos = findNodeInVector(from, nodes);
+			unsigned int fromIndex = std::distance(nodes.begin(), pos);
+
 			// add to the graph
-			Vertex v = boost::add_vertex(from->getID(), g);
-			g[from->getID()].ID = from->getID();
+			Vertex v = boost::vertex(fromIndex, g);
+
 			// check if edge doesn't exist yet, then add it
 			if(!boost::edge(v, u, g).second) {
 				boost::add_edge(v, u, g);

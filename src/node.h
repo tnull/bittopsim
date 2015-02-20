@@ -232,14 +232,13 @@ Node::ptr randomNodeOfMap(Node::map& m);
 
 
 typedef struct VertexProperty {
-   std::string ID;
  } VertexProperty;
 
 typedef struct EdgeProperty {
 	float probability = 1.0;
  } EdgeProperty;
 // TODO sollte der graph wirklich undirected sein? in einem netzwerk ist das ok?
-typedef boost::labeled_graph<boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty>, std::string> Graph;
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty> Graph;
 
 typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
 

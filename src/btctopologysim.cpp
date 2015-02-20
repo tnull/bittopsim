@@ -52,13 +52,13 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	}
 
 	// generate the graph
-	Graph g;
+	Graph g(allNodes.size());
 	nodeVectorToGraph(allNodes, g);
 
 	// calculate clustering coefs
 	ClusteringContainer coefs(boost::num_vertices(g));
 	ClusteringMap cm(coefs, g);
-	float cc = boost::all_clustering_coefficients(g.graph(), cm);
+	float cc = boost::all_clustering_coefficients(g, cm);
 	std::cout << std::endl << std::endl;
 	std::cout << "\t\tStatistics!" << std::endl;
 	std::cout << "\t\t-----------" << std::endl;
@@ -69,10 +69,10 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	DistanceMatrix distances(boost::num_vertices(g));
     DistanceMatrixMap dm(distances, g);
 
-	boost::floyd_warshall_all_pairs_shortest_paths(g.graph(), dm, weight_map(wm));
+	boost::floyd_warshall_all_pairs_shortest_paths(g, dm, weight_map(wm));
 	GeodesicContainer geodesic(boost::num_vertices(g));
 	GeodesicMap geodesicMap(geodesic, g);
-	float mean_geodesic = boost::all_mean_geodesics(g.graph(), dm, geodesicMap);
+	float mean_geodesic = boost::all_mean_geodesics(g, dm, geodesicMap);
 	std::cout << "The mean geodesic distance is: " << mean_geodesic << std::endl;
 
 	// calculate the diameter:
@@ -94,7 +94,7 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	std::ofstream graphFile(graphFilePath);
 	if(graphFile.is_open()) {
 		boost::write_graphviz(graphFile, g, 
-				boost::make_label_writer(boost::get(&VertexProperty::ID, g)),
+				boost::default_writer(),
 				boost::default_writer(),
 				boost::make_graph_attributes_writer(graph_attr, vertex_attr, edge_attr)
 		);
