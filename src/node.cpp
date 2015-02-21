@@ -5,7 +5,7 @@
 #include <cstring>
 #include <arpa/inet.h>
 
-Node::Node(BTCTopologySimulation *simCTX, bool acceptInboundConnections) : simCTX(simCTX), identifier(generateRandomIP()), acceptInboundConnections(acceptInboundConnections) {}
+Node::Node(BTCTopologySimulation *simCTX, bool acceptInboundConnections) : simCTX(simCTX), identifier(generateRandomIP()), acceptInboundConnections(acceptInboundConnections), sendAddrNodesLastFill(0) {}
 
 Node::~Node() {}
 
@@ -28,7 +28,6 @@ void Node::sendVersionMsg(Node::ptr receiverNode, bool fOneShot)
 		// if we already have an inbound connection, change it to outbound...
 		auto it = findNodeInVector(receiverNode, inboundConnections);
 		if (it != inboundConnections.end()) {
-			//! \todo does this work??
 			inboundConnections.erase(it);
 		}
 		connections.push_back(receiverNode);
@@ -60,8 +59,6 @@ void Node::addKnownNode(Node::ptr node)
 	// don't add self
 	if (*node == *this) return;
 
-	//! \todo introduce maximum for known Nodes?
-	
 	// if node is not in known Nodes, add it
 	auto it = knownNodes.find(node->getID());
 	if(it == knownNodes.end()) {
@@ -110,22 +107,44 @@ void Node::sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr)
 void Node::recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr)
 {
 	//! \todo: implement and use timestamps. "lastSeen" for Nodes. We should only forward addrs younger than 10 minutes here.	
-	//! \todo: send to the same nodes for 24h
 	
 	// if we haven't got an "addr" message from this node, do something
+	//! \todo when will nodes forget that they already got addrs from a node? If we don't forget, how can we send to the same nodes for 24h?
 	if(!nodeInVector(senderNode, gotAddrFromNode)) {
 		gotAddrFromNode.push_back(senderNode);
 
-		// send to two random connected Nodes
-		if(connections.size() > 0) {
-			//! \todo do they check for duplicates?
-			for (short i = 0; i < 2; ++i) {
-				Node::ptr n = randomNodeOfVector(connections);
-				sendAddrMsg(n, vAddr);
+		time_t now = BTCTopologySimulation::getSimClock();
+
+		// if we send for the first time, or we sent for 24h to the same nodes, get new random nodes.
+		if(sendAddrNodes.size() == 0 || sendAddrNodesLastFill + 86400 < now) {
+			sendAddrNodesLastFill = now;
+			// send to two random connected Nodes
+			switch(connections.size()) {
+				case 0: 
+					break;
+				case 1:
+					sendAddrNodes.push_back(connections.at(0));
+					break;
+				case 2:
+					sendAddrNodes.push_back(connections.at(0));
+					sendAddrNodes.push_back(connections.at(1));
+					break;
+				default:
+					for (short i = 0; i < 2; ++i) {
+						Node::ptr n = randomNodeOfVector(sendAddrNodes);
+						while(nodeInVector(n, sendAddrNodes)) {
+							// avoid duplicates
+							n = randomNodeOfVector(sendAddrNodes);
+						}
+						sendAddrNodes.push_back(n);
+					}
 			}
 		}
+		for(Node::ptr n : sendAddrNodes) {
+			sendAddrMsg(n, vAddr);
+		}
 
-		//! \todo: maybe check if in our nets at some point?
+		//! \constraint We don't check whether a node is in reachable nets, and hence are always forwarding the "addr" messages to two nodes.
 		addKnownNodes(vAddr);
 	}
 }

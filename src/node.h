@@ -160,6 +160,8 @@ private:
 	Node::vector inboundConnections; //!< open inbound connections
 	Node::vector gotAddrFromNode; //!< vector to save if we already got "addr" message from this node
 	bool acceptInboundConnections; //!< does this node accept inbound connections?
+	Node::vector sendAddrNodes; //!< these nodes will be used to send addrs to for 24h, then there will be new ones.
+	time_t sendAddrNodesLastFill; //!< Last time we filled the sendAddrNodes.
 };
 
 /*! 
