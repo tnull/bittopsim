@@ -37,8 +37,9 @@ public:
 	 * \brief initialize the Node
 	 * \param simCTX: a pointer to the simulation this Node belongs to.
 	 * \param acceptInboundConnections: decides if the Node will be a client or a server, defaults to server.
+	 * \param online decides if the Node will be online at creation. Only viable for CrawlerNodes (so far)
 	 */
-	Node(BTCTopologySimulation* simCTX, bool acceptInboundConnections = true);
+	Node(BTCTopologySimulation* simCTX, bool acceptInboundConnections = true, bool online = false);
 	~Node();
 
 	/*! 
@@ -88,9 +89,19 @@ public:
 	std::string getID() const;
 
 	/*!
-	 * \brief bootstrap this Node
+	 * \brief bootstrap &  start this Node
 	 */
-	void bootstrap();
+	void start();
+
+	/*!
+	 * \brief stop this Node, it keeps knownNodes, but forgets all connections.
+	 */
+	void stop();
+
+	/*!
+	 * \brief maintenance function which gets called regularly to clean up, refill connections etc.
+	 */
+	void maintenance();
 
 	/*!
 	 * \brief try to connect until we have
@@ -120,12 +131,13 @@ protected:
 
 	Node::map knownNodes; //!< The known Nodes of this Node
 	BTCTopologySimulation* simCTX; //!< the simulation the DNSSeeder belongs to
+	bool acceptInboundConnections; //!< does this node accept inbound connections?
+	bool online; //!< is this node online?
 private:
 	/*!
 	 * \brief sends an "version" message
 	 * \param receiverNode is the Node the message will be sent to
 	 * \param fOneShot defines if the local Node will really connect, or if it just connects for addr/getaddr
-	 * \todo How is fOneShot really defined??
 	 */
 	void sendVersionMsg(Node::ptr receiverNode, bool fOneShot = false);
 
@@ -159,7 +171,6 @@ private:
 	Node::vector connections; //!< The connected (outbound) Nodes
 	Node::vector inboundConnections; //!< open inbound connections
 	Node::vector gotAddrFromNode; //!< vector to save if we already got "addr" message from this node
-	bool acceptInboundConnections; //!< does this node accept inbound connections?
 	Node::vector sendAddrNodes; //!< these nodes will be used to send addrs to for 24h, then there will be new ones.
 	time_t sendAddrNodesLastFill; //!< Last time we filled the sendAddrNodes.
 };

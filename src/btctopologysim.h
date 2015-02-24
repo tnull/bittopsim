@@ -45,14 +45,6 @@ class BTCTopologySimulation
 		 */
 		static time_t tickSimClock();
 
-
-		/*!
-		 * \brief add a node to the fillConnections-Schedule
-		 * \param node to add
-		 * \param timeSlot to add to
-		 */
-		void addToSchedule(Node::ptr node, time_t timeSlot);
-
 		/*!
 		 * \brief returns the dns seeder
 		 */
@@ -87,7 +79,6 @@ class BTCTopologySimulation
 		DNSSeeder::ptr seed; //!< the DNSSeeder
 		Node::vector allNodes; //!< all nodes spawned
 		std::unordered_map<time_t, Node::vector> bootSchedule; //!< the times at which a node should be bootstrapped.
-		std::unordered_map<time_t, Node::vector> schedule; //!< the times at which a node should be scheduled to start.
 };
 
 #endif //BTCTOPOLOGYSIM_H

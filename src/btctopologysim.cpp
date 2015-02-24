@@ -45,11 +45,7 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	// To test, generate some nodes at first
 	for (; getSimClock() < endTime; tickSimClock()) {
 		for (Node::ptr node : bootSchedule[getSimClock()]) {
-			node -> bootstrap();
-		}
-
-		for (Node::ptr node : schedule[getSimClock()]) {
-			node -> fillConnections();
+			node -> start();
 		}
 	}
 
@@ -60,7 +56,7 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 	// generate random graph for comparison
 	Graph randomGraph;
 	boost::random::mt19937 rng;
-	boost::generate_random_graph(randomGraph, num_vertices(g), num_edges(g), rng, true, false);
+	boost::generate_random_graph(randomGraph, num_vertices(g), num_edges(g), rng, false, false);
 
 	// start the calculations and print the results
 	calculateAndPrintData(g, randomGraph);
@@ -74,11 +70,6 @@ BTCTopologySimulation::~BTCTopologySimulation()
 {
 	// clean up
 	allNodes.clear();
-}
-
-void BTCTopologySimulation::addToSchedule(Node::ptr node, time_t timeSlot)
-{
-	schedule[timeSlot].push_back(node);
 }
 
 time_t BTCTopologySimulation::getSimClock()
@@ -99,7 +90,7 @@ void BTCTopologySimulation::calculateAndPrintData(Graph& g, Graph& randomGraph)
 
 	// calculate mean geodesic path
 	DistanceMatrix distances = calculateDistances(g);
-	DistanceMatrix randomDistances = calculateDistances(g);
+	DistanceMatrix randomDistances = calculateDistances(randomGraph);
 
 	float meanGeodesic = calculateMeanGeodesic(g, distances);
 	float randomMeanGeodesic = calculateMeanGeodesic(randomGraph, randomDistances);

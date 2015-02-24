@@ -5,7 +5,7 @@
 #include <cstring>
 #include <arpa/inet.h>
 
-Node::Node(BTCTopologySimulation *simCTX, bool acceptInboundConnections) : simCTX(simCTX), identifier(generateRandomIP()), acceptInboundConnections(acceptInboundConnections), sendAddrNodesLastFill(0) {}
+Node::Node(BTCTopologySimulation *simCTX, bool acceptInboundConnections, bool online) : simCTX(simCTX), acceptInboundConnections(acceptInboundConnections), online(online), identifier(generateRandomIP()), sendAddrNodesLastFill(0) {}
 
 Node::~Node() {}
 
@@ -26,17 +26,19 @@ void Node::sendVersionMsg(Node::ptr receiverNode, bool fOneShot)
 	if (!fOneShot) {
 
 		// if we already have an inbound connection, change it to outbound...
-		auto it = findNodeInVector(receiverNode, inboundConnections);
-		if (it != inboundConnections.end()) {
-			inboundConnections.erase(it);
+		if(nodeInVector(receiverNode, inboundConnections)) {
+			inboundConnections.erase(std::remove(std::begin(inboundConnections), std::end(inboundConnections), receiverNode));
 		}
-		connections.push_back(receiverNode);
+
+		if(!nodeInVector(receiverNode, connections)) {
+				connections.push_back(receiverNode);
+		}
 
 		LOG("\tNode " << this -> getID() << " --> " << receiverNode -> getID() << "[" << connections.size() << "/" << MAXOUTBOUNDPEERS << "]");
 	}
 
 	receiverNode -> recvVersionMsg(shared_from_this());
-	//! \todo sendaddr //sendAddrMsg(receiverNode, knownNodes);
+	sendAddrMsg(receiverNode);
 	Node::vector vNodes = sendGetaddrMsg(receiverNode);
 	addKnownNodes(vNodes);
 }
@@ -85,18 +87,22 @@ void Node::removeKnownNode(Node::ptr node)
 void Node::sendAddrMsg(Node::ptr receiverNode)
 {
 	// default for sending addr messages
-	unsigned int size = knownNodes.size();
+	unsigned int size = knownNodes.size(); 
 	unsigned int maxaddrs = size <= 1000 ? size : 1000;
 	Node::vector vAddr;
-	unsigned int count = 0;
+	unsigned int count = 1; // start at 1 because we don't want to send the receiverNode to itself
 	while(count < maxaddrs) {
 		// fill vector with random known nodes, which aren't ourselves and aren't already in there
 		Node::ptr n = randomNodeOfMap(knownNodes);
-		while(*n == *receiverNode || nodeInVector(n, vAddr)) n = randomNodeOfMap(knownNodes);
+		while(n.get() == receiverNode.get() || nodeInVector(n, vAddr)) {
+			n = randomNodeOfMap(knownNodes);
+		}
 		vAddr.push_back(n);
 		count++;
 	}
-	sendAddrMsg(receiverNode, vAddr);
+	if(!vAddr.empty()) {
+		sendAddrMsg(receiverNode, vAddr);
+	}
 }
 
 void Node::sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr) 
@@ -132,11 +138,13 @@ void Node::recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr)
 				default:
 					for (short i = 0; i < 2; ++i) {
 						Node::ptr n = randomNodeOfVector(sendAddrNodes);
-						while(nodeInVector(n, sendAddrNodes)) {
+						while(n != nullptr && nodeInVector(n, sendAddrNodes)) {
 							// avoid duplicates
 							n = randomNodeOfVector(sendAddrNodes);
 						}
-						sendAddrNodes.push_back(n);
+						if(n != nullptr) {
+							sendAddrNodes.push_back(n);
+						}
 					}
 			}
 		}
@@ -176,14 +184,39 @@ std::string Node::getID() const
 	return identifier;
 }
 
-void Node::bootstrap()
+void Node::start()
 {
-	LOG("Bootstrapping Node " << getID() << ".");
+	LOG("Starting Node " << getID() << ".");
+	online = true;
+	fillConnections();
+	if(connections.size() >= 2) {
+		LOG("\tEnough P2P peers available, skipping DNS seeding");
+		return;
+	}
 	DNSSeeder::ptr seed = simCTX->getDNSSeeder();
 	sendVersionMsg(seed->getCrawlerNode(), true);
-	//! \todo: when exactly do nodes send addr/getaddr?
 	Node::vector nodesFromSeeds = seed->queryDNS();
 	addKnownNodes(nodesFromSeeds);
+	fillConnections();
+}
+
+void Node::stop() 
+{
+	LOG("Stopping Node " << getID() << ".");
+	online = false;
+	\todo implement disconnect? how is this handled in BTC?
+	connections.clear();
+}
+
+void Node::maintenance()
+{
+	// check if all our connections are still online
+	for (Node::ptr node : connections) {
+		if(!node->isReachable()) {
+			connections.erase(std::remove(std::begin(connections), std::end(connections), node), std::end(connections));
+		}
+	}
+
 	fillConnections();
 }
 
@@ -191,18 +224,33 @@ void Node::fillConnections()
 {
 	if(knownNodes.empty()) return;
 	// get Minimum of MAXOUTBOUNDPEERS and knownNodes.size() to determine to how many nodes we can connect
-	unsigned int numberOfConnections = MAXOUTBOUNDPEERS < knownNodes.size() ? MAXOUTBOUNDPEERS : knownNodes.size();
+	unsigned int numberOfConnections = MAXOUTBOUNDPEERS < inboundConnections.size() ? MAXOUTBOUNDPEERS : inboundConnections.size();
 	
+	// first fill with inbound connections
+	while (connections.size() < numberOfConnections && !inboundConnections.empty()) {
+		Node::ptr n = randomNodeOfVector(inboundConnections);
+		while(!n->isReachable() || nodeInVector(n, connections)) {
+			n = randomNodeOfVector(inboundConnections);
+		}
+		sendVersionMsg(n);
+	}
+
+	numberOfConnections = MAXOUTBOUNDPEERS < knownNodes.size() ? MAXOUTBOUNDPEERS : knownNodes.size();
 	// Choose random Nodes of knownNodes
 	while (connections.size() < numberOfConnections) {
+
+		// randomly choose nodes until we have a distinct, reachable set
 		Node::ptr n = randomNodeOfMap(knownNodes);
+		while(!n->isReachable() || nodeInVector(n, connections)) {
+			n = randomNodeOfMap(knownNodes);
+		}
 		sendVersionMsg(n);
 	}
 }
 
 bool Node::isReachable()
 {
-	return acceptInboundConnections;
+	return online && acceptInboundConnections;
 }
 
 
@@ -235,7 +283,7 @@ std::string Node::generateRandomIP()
 }
 
 
-CrawlerNode::CrawlerNode(BTCTopologySimulation* simCTX) : Node(simCTX) 
+CrawlerNode::CrawlerNode(BTCTopologySimulation* simCTX) : Node(simCTX, true, true)
 {
 	// fill our goodNodes with all reachable nodes for bootstrap.
 	//! \constraint We assume that bootstrapping by iterating over all nodes is ok.
@@ -284,8 +332,6 @@ void DNSSeeder::cacheHit(bool force)
 
 			for(unsigned int i = 0; i < size / 2 && i < 1000; i++) {
 				Node::ptr n = randomNodeOfVector(goodNodes);
-				//! \todo: quickfix, after implementing goodNodes, nodes should check themselves before connecting!!
-				while(!n->isReachable()) n = randomNodeOfVector(goodNodes);
 				nodeCache.push_back(n);
 			}
 		}
@@ -309,12 +355,14 @@ bool nodeInVector(Node::ptr node, Node::vector& vector)
 
 Node::ptr randomNodeOfVector(Node::vector& v)
 {
+	if(v.empty()) return nullptr;
 	unsigned int randomIndex = rand() % v.size();
 	return v.at(randomIndex);
 }
 
 Node::ptr randomNodeOfMap(Node::map& m)
 {
+	if(m.empty()) return nullptr;
 	unsigned int randomIndex = rand() % m.size();
 	auto it = m.begin();
 	std::advance(it, randomIndex);

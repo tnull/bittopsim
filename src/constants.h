@@ -13,7 +13,7 @@ const unsigned int MAXSEEDPEERS = 20;
 /*!
  * The maximum number of peers a new Node can have to
  */
-const unsigned int MAXCONNECTEDPEERS = 100;
+const unsigned int MAXCONNECTEDPEERS = 125;
 
 /*!
  * The maximum number of outbound connections a client creates
