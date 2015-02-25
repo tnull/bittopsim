@@ -149,6 +149,7 @@ private:
 	/*!
 	 * @brief connects to an other node.
 	 * @param destNode is the Node the connection will be made to. 
+	 * @param fOneShot determines if we disconnect after successful retrieval of addrs.
 	 * @return true if the connection could be established, else false.
 	 */
 	bool connect(Node::ptr destNode, bool fOneShot = false);
@@ -162,7 +163,6 @@ private:
 	/*!
 	 * \brief sends an "version" message
 	 * \param receiverNode is the Node the message will be sent to
-	 * \param fOneShot defines if the local Node will really connect, or if it just connects for addr/getaddr
 	 */
 	void sendVersionMsg(Node::ptr receiverNode);
 
