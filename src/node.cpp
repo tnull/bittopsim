@@ -9,49 +9,107 @@ Node::Node(BTCTopologySimulation *simCTX, bool acceptInboundConnections, bool on
 
 Node::~Node() {}
 
-void Node::sendVersionMsg(Node::ptr receiverNode, bool fOneShot)
+bool Node::inboundConnect(Node::ptr originNode) 
 {
-	// we can't reach the receiver
-	if(!receiverNode->isReachable()) return;
+	if(!acceptInboundConnections) return false;
+	if(*originNode == *this) return false;
+	if(connections.size() + inboundConnections.size() >= MAXCONNECTEDPEERS) return false;
 
-	// don't connect to self
-	if (*receiverNode == *this) return;
-
-	// don't connect if we have enough peers
-	if(connections.size() >= MAXOUTBOUNDPEERS || connections.size() + inboundConnections.size() >= MAXCONNECTEDPEERS) return;
-
-	// don't connect to already connected Node...
-	if (nodeInVector(receiverNode, connections)) return;
-
-	if (!fOneShot) {
-
-		// if we already have an inbound connection, change it to outbound...
-		if(nodeInVector(receiverNode, inboundConnections)) {
-			inboundConnections.erase(std::remove(std::begin(inboundConnections), std::end(inboundConnections), receiverNode));
+	if(!nodeInVector(originNode, connections)) {
+		if(!nodeInVector(originNode, connections) && connections.size() < MAXOUTBOUNDPEERS) {
+			connections.push_back(originNode);
+		} else if(!nodeInVector(originNode, inboundConnections)) {
+			inboundConnections.push_back(originNode);
+		} else {
+			LOG("\tNode " << getID() << "is already connected to Node " << originNode->getID() << ".");
 		}
+	} 
+	addKnownNode(originNode);
+	return true;
+}
 
-		if(!nodeInVector(receiverNode, connections)) {
-				connections.push_back(receiverNode);
-		}
 
-		LOG("\tNode " << this -> getID() << " --> " << receiverNode -> getID() << "[" << connections.size() << "/" << MAXOUTBOUNDPEERS << "]");
+void Node::inboundDisconnect(Node::ptr originNode)
+{
+	if(nodeInVector(originNode, connections)) {
+		connections.erase(std::remove(std::begin(connections), std::end(connections), originNode));
 	}
 
+	if(nodeInVector(originNode, inboundConnections)) {
+		inboundConnections.erase(std::remove(std::begin(inboundConnections), std::end(inboundConnections), originNode));
+	}
+}
+
+bool Node::connect(Node::ptr destNode, bool fOneShot)
+{
+	// we can't reach the receiver
+	if(!destNode->isReachable()) return false;
+
+	// don't connect to self
+	if (*destNode == *this) return false;
+
+	// don't connect if we have enough peers
+	if(connections.size() >= MAXOUTBOUNDPEERS || connections.size() + inboundConnections.size() >= MAXCONNECTEDPEERS) return false;
+
+	// don't connect to already connected Node...
+	if (nodeInVector(destNode, connections)) return false;
+	
+	// establish connection
+	bool connection = destNode->inboundConnect(shared_from_this());
+
+	if (!connection) {
+		LOG("\tNode " << getID() << "could not connect to Node " << destNode->getID() << ".");
+		return false;
+	}
+	// if we already have an inbound connection, change it to outbound...
+	if(nodeInVector(destNode, inboundConnections)) {
+		inboundConnections.erase(std::remove(std::begin(inboundConnections), std::end(inboundConnections), destNode));
+	}
+
+	if(!nodeInVector(destNode, connections)) {
+			connections.push_back(destNode);
+	}
+
+	LOG("\tNode " << getID() << " --> " << destNode->getID() << "[" << connections.size() << "/" << MAXOUTBOUNDPEERS << "]");
+	sendVersionMsg(destNode);
+	
+	if(fOneShot) {
+		disconnect(destNode);
+	}
+
+	return connection;
+}
+
+
+void Node::disconnect(Node::ptr destNode)
+{
+	destNode->inboundDisconnect(shared_from_this());
+
+	if(nodeInVector(destNode, connections)) {
+		connections.erase(std::remove(std::begin(connections), std::end(connections), destNode));
+	}
+
+	if(nodeInVector(destNode, inboundConnections)) {
+		inboundConnections.erase(std::remove(std::begin(inboundConnections), std::end(inboundConnections), destNode));
+	}
+}
+
+void Node::sendVersionMsg(Node::ptr receiverNode)
+{
 	receiverNode -> recvVersionMsg(shared_from_this());
-	sendAddrMsg(receiverNode);
-	Node::vector vNodes = sendGetaddrMsg(receiverNode);
-	addKnownNodes(vNodes);
 }
 
 void Node::recvVersionMsg(Node::ptr senderNode)
 {
-	if(!nodeInVector(senderNode, connections)) {
-		if(acceptInboundConnections && connections.size() + inboundConnections.size() < MAXCONNECTEDPEERS && !nodeInVector(senderNode, inboundConnections)) {
-			inboundConnections.push_back(senderNode);
-		}
-	} 
-	addKnownNode(senderNode);
-	//! \todo schedule here?
+	if(nodeInVector(senderNode, inboundConnections)) {
+		sendVersionMsg(senderNode);
+	} else {
+		Node::vector addr;
+		addr.push_back(shared_from_this());
+		sendAddrMsg(senderNode, addr);
+		Node::vector vNodes = sendGetaddrMsg(senderNode);
+		addKnownNodes(vNodes);
+	}
 }
 
 void Node::addKnownNode(Node::ptr node)
@@ -113,60 +171,48 @@ void Node::sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr)
 void Node::recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr)
 {
 	//! \todo: implement and use timestamps. "lastSeen" for Nodes. We should only forward addrs younger than 10 minutes here.	
+	//! \todo: also, this right now is an infinite loop, how do we schedule the addr messages?
 	
-	// if we haven't got an "addr" message from this node, do something
-	//! \todo when will nodes forget that they already got addrs from a node? If we don't forget, how can we send to the same nodes for 24h?
-	if(!nodeInVector(senderNode, gotAddrFromNode)) {
-		gotAddrFromNode.push_back(senderNode);
+	time_t now = BTCTopologySimulation::getSimClock();
 
-		time_t now = BTCTopologySimulation::getSimClock();
-
-		// if we send for the first time, or we sent for 24h to the same nodes, get new random nodes.
-		if(sendAddrNodes.size() == 0 || sendAddrNodesLastFill + 86400 < now) {
-			sendAddrNodesLastFill = now;
-			// send to two random connected Nodes
-			switch(connections.size()) {
-				case 0: 
-					break;
-				case 1:
-					sendAddrNodes.push_back(connections.at(0));
-					break;
-				case 2:
-					sendAddrNodes.push_back(connections.at(0));
-					sendAddrNodes.push_back(connections.at(1));
-					break;
-				default:
-					for (short i = 0; i < 2; ++i) {
-						Node::ptr n = randomNodeOfVector(sendAddrNodes);
-						while(n != nullptr && nodeInVector(n, sendAddrNodes)) {
-							// avoid duplicates
-							n = randomNodeOfVector(sendAddrNodes);
-						}
-						if(n != nullptr) {
-							sendAddrNodes.push_back(n);
-						}
+	// if we send for the first time, or we sent for 24h to the same nodes, get new random nodes.
+	if(sendAddrNodes.size() == 0 || sendAddrNodesLastFill + 86400 < now) {
+		sendAddrNodesLastFill = now;
+		// send to two random connected Nodes
+		switch(connections.size()) {
+			case 0: 
+				break;
+			case 1:
+				sendAddrNodes.push_back(connections.at(0));
+				break;
+			case 2:
+				sendAddrNodes.push_back(connections.at(0));
+				sendAddrNodes.push_back(connections.at(1));
+				break;
+			default:
+				for (short i = 0; i < 2; ++i) {
+					Node::ptr n = randomNodeOfVector(sendAddrNodes);
+					while(n != nullptr && nodeInVector(n, sendAddrNodes)) {
+						// avoid duplicates
+						n = randomNodeOfVector(sendAddrNodes);
 					}
-			}
+					if(n != nullptr) {
+						sendAddrNodes.push_back(n);
+					}
+				}
 		}
-		for(Node::ptr n : sendAddrNodes) {
-			sendAddrMsg(n, vAddr);
-		}
-
-		//! \constraint We don't check whether a node is in reachable nets, and hence are always forwarding the "addr" messages to two nodes.
-		addKnownNodes(vAddr);
 	}
+	for(Node::ptr n : sendAddrNodes) {
+		sendAddrMsg(n, vAddr);
+	}
+
+	//! \constraint We don't check whether a node is in reachable nets, and hence are always forwarding the "addr" messages to two nodes.
+	addKnownNodes(vAddr);
 }
 
 Node::vector Node::sendGetaddrMsg(Node::ptr receiverNode)
 {
-	Node::vector result;
-	// check if we already got addr message from the receiverNode
-	//! \todo: check if this is correct, return empty vector if we already asked this node?
-	if(!nodeInVector(receiverNode, gotAddrFromNode)) {
-		gotAddrFromNode.push_back(receiverNode);
-		result = receiverNode -> recvGetaddrMsg();
-	}
-	return result;
+	return receiverNode->recvGetaddrMsg();
 }
 
 Node::vector Node::recvGetaddrMsg() {
@@ -194,7 +240,7 @@ void Node::start()
 		return;
 	}
 	DNSSeeder::ptr seed = simCTX->getDNSSeeder();
-	sendVersionMsg(seed->getCrawlerNode(), true);
+	connect(seed->getCrawlerNode(), true);
 	Node::vector nodesFromSeeds = seed->queryDNS();
 	addKnownNodes(nodesFromSeeds);
 	fillConnections();
@@ -204,8 +250,15 @@ void Node::stop()
 {
 	LOG("Stopping Node " << getID() << ".");
 	online = false;
-	\todo implement disconnect? how is this handled in BTC?
+	for(Node::ptr n : connections) {
+		disconnect(n);
+	}
+
+	for(Node::ptr n : inboundConnections) {
+		disconnect(n);
+	}
 	connections.clear();
+	inboundConnections.clear();
 }
 
 void Node::maintenance()
@@ -232,7 +285,7 @@ void Node::fillConnections()
 		while(!n->isReachable() || nodeInVector(n, connections)) {
 			n = randomNodeOfVector(inboundConnections);
 		}
-		sendVersionMsg(n);
+		connect(n);
 	}
 
 	numberOfConnections = MAXOUTBOUNDPEERS < knownNodes.size() ? MAXOUTBOUNDPEERS : knownNodes.size();
@@ -244,7 +297,7 @@ void Node::fillConnections()
 		while(!n->isReachable() || nodeInVector(n, connections)) {
 			n = randomNodeOfMap(knownNodes);
 		}
-		sendVersionMsg(n);
+		connect(n);
 	}
 }
 

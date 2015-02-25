@@ -60,6 +60,18 @@ public:
 	 */
 	void removeKnownNode(Node::ptr node);
 
+	/*!
+	 * @brief Is called by an other node's connect function to initiate a connection to this node
+	 * @param originNode is the Node the connection was made from.
+	 * @return true if connection was successful, else false.
+	 */
+	bool inboundConnect(Node::ptr originNode);
+
+	/*!
+	 * @brief Is called by an other node's disconnect function to end a connection to this node
+	 * @param originNode is the Node the connection was made from.
+	 */
+	void inboundDisconnect(Node::ptr originNode);
 
 	/*!
 	 * \brief receives an "version" message
@@ -135,11 +147,24 @@ protected:
 	bool online; //!< is this node online?
 private:
 	/*!
+	 * @brief connects to an other node.
+	 * @param destNode is the Node the connection will be made to. 
+	 * @return true if the connection could be established, else false.
+	 */
+	bool connect(Node::ptr destNode, bool fOneShot = false);
+
+	/*!
+	 * @brief disconnects from an other node.
+	 * @param destNode is the Node to disconnect from
+	 */
+	void disconnect(Node::ptr destNode);
+	
+	/*!
 	 * \brief sends an "version" message
 	 * \param receiverNode is the Node the message will be sent to
 	 * \param fOneShot defines if the local Node will really connect, or if it just connects for addr/getaddr
 	 */
-	void sendVersionMsg(Node::ptr receiverNode, bool fOneShot = false);
+	void sendVersionMsg(Node::ptr receiverNode);
 
 	/*! 
 	 * \brief sends an "getaddr" message to the node
@@ -170,7 +195,6 @@ private:
 	std::string identifier; //!< the IP of the Node, also used as an ID
 	Node::vector connections; //!< The connected (outbound) Nodes
 	Node::vector inboundConnections; //!< open inbound connections
-	Node::vector gotAddrFromNode; //!< vector to save if we already got "addr" message from this node
 	Node::vector sendAddrNodes; //!< these nodes will be used to send addrs to for 24h, then there will be new ones.
 	time_t sendAddrNodesLastFill; //!< Last time we filled the sendAddrNodes.
 };
