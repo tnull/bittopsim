@@ -47,6 +47,10 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 		for (Node::ptr node : bootSchedule[getSimClock()]) {
 			node -> start();
 		}
+
+		for (auto it : onlineNodes) {
+			it.second->maintenance();
+		}
 	}
 
 	// generate the graph
@@ -188,6 +192,16 @@ Node::vector BTCTopologySimulation::getAllNodes()
 	return allNodes;
 }
 
+
+void BTCTopologySimulation::setNodeOnline(Node::ptr node) 
+{
+	onlineNodes[node->getID()] = node;
+}
+
+void BTCTopologySimulation::setNodeOffline(Node::ptr node)
+{
+	onlineNodes.erase(node->getID());
+}
 int main(int argc, char* argv[]) 
 {
 	// number of server nodes to create

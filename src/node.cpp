@@ -13,30 +13,31 @@ bool Node::inboundConnect(Node::ptr originNode)
 {
 	if(!acceptInboundConnections) return false;
 	if(*originNode == *this) return false;
+
+	addKnownNode(originNode);
+
 	if(connections.size() + inboundConnections.size() >= MAXCONNECTEDPEERS) return false;
 
-	if(!nodeInVector(originNode, connections)) {
-		if(!nodeInVector(originNode, connections) && connections.size() < MAXOUTBOUNDPEERS) {
-			connections.push_back(originNode);
-		} else if(!nodeInVector(originNode, inboundConnections)) {
-			inboundConnections.push_back(originNode);
-		} else {
-			LOG("\tNode " << getID() << "is already connected to Node " << originNode->getID() << ".");
-		}
-	} 
-	addKnownNode(originNode);
+	if(!nodeInVector(originNode, inboundConnections)) {
+		LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " <-- " << std::setw(15) << originNode->getID() << " [" << connections.size() << "/" << MAXOUTBOUNDPEERS << " out | " << inboundConnections.size() << " in ]");
+		inboundConnections.push_back(originNode);
+	}
+
+	//! \todo check what else to do...
 	return true;
 }
 
 
 void Node::inboundDisconnect(Node::ptr originNode)
 {
-	if(nodeInVector(originNode, connections)) {
-		connections.erase(std::remove(std::begin(connections), std::end(connections), originNode));
+	auto it = findNodeInVector(originNode, connections);
+	if(it != std::end(connections)) {
+		connections.erase(it);
 	}
 
-	if(nodeInVector(originNode, inboundConnections)) {
-		inboundConnections.erase(std::remove(std::begin(inboundConnections), std::end(inboundConnections), originNode));
+	auto iit = findNodeInVector(originNode, inboundConnections);
+	if(iit != std::end(inboundConnections)) {
+		inboundConnections.erase(iit);
 	}
 }
 
@@ -57,20 +58,19 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 	// establish connection
 	bool connection = destNode->inboundConnect(shared_from_this());
 
-	if (!connection) {
-		LOG("\tNode " << getID() << "could not connect to Node " << destNode->getID() << ".");
-		return false;
-	}
+	addKnownNode(destNode);
+
 	// if we already have an inbound connection, change it to outbound...
-	if(nodeInVector(destNode, inboundConnections)) {
-		inboundConnections.erase(std::remove(std::begin(inboundConnections), std::end(inboundConnections), destNode));
+	auto it = findNodeInVector(destNode, inboundConnections);
+	if (it != std::end(inboundConnections)) {
+		inboundConnections.erase(it);
 	}
 
 	if(!nodeInVector(destNode, connections)) {
-			connections.push_back(destNode);
+		connections.push_back(destNode);
 	}
 
-	LOG("\tNode " << getID() << " --> " << destNode->getID() << "[" << connections.size() << "/" << MAXOUTBOUNDPEERS << "]");
+	LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << connections.size() << "/" << MAXOUTBOUNDPEERS << " out | " << inboundConnections.size() << " in ]");
 	sendVersionMsg(destNode);
 	
 	if(fOneShot) {
@@ -85,12 +85,14 @@ void Node::disconnect(Node::ptr destNode)
 {
 	destNode->inboundDisconnect(shared_from_this());
 
-	if(nodeInVector(destNode, connections)) {
-		connections.erase(std::remove(std::begin(connections), std::end(connections), destNode));
+	auto it = findNodeInVector(destNode, connections);
+	if (it != std::end(connections)) {
+		connections.erase(it);
 	}
 
-	if(nodeInVector(destNode, inboundConnections)) {
-		inboundConnections.erase(std::remove(std::begin(inboundConnections), std::end(inboundConnections), destNode));
+	auto iit = findNodeInVector(destNode, inboundConnections);
+	if (iit != std::end(inboundConnections)) {
+		inboundConnections.erase(iit);
 	}
 }
 
@@ -103,12 +105,12 @@ void Node::recvVersionMsg(Node::ptr senderNode)
 {
 	if(nodeInVector(senderNode, inboundConnections)) {
 		sendVersionMsg(senderNode);
+		addKnownNode(senderNode);
 	} else {
 		Node::vector addr;
 		addr.push_back(shared_from_this());
 		sendAddrMsg(senderNode, addr);
-		Node::vector vNodes = sendGetaddrMsg(senderNode);
-		addKnownNodes(vNodes);
+		sendGetaddrMsg(senderNode);
 	}
 }
 
@@ -142,36 +144,28 @@ void Node::removeKnownNode(Node::ptr node)
 	}
 }
 
-void Node::sendAddrMsg(Node::ptr receiverNode)
+void Node::scheduleAddrMsg(Node::ptr receiverNode, Node::vector& vAddr)
 {
-	// default for sending addr messages
-	unsigned int size = knownNodes.size(); 
-	unsigned int maxaddrs = size <= 1000 ? size : 1000;
-	Node::vector vAddr;
-	unsigned int count = 1; // start at 1 because we don't want to send the receiverNode to itself
-	while(count < maxaddrs) {
-		// fill vector with random known nodes, which aren't ourselves and aren't already in there
-		Node::ptr n = randomNodeOfMap(knownNodes);
-		while(n.get() == receiverNode.get() || nodeInVector(n, vAddr)) {
-			n = randomNodeOfMap(knownNodes);
+	Node::vector& element = addrMessagesToSend[receiverNode->getID()];
+	for(Node::ptr addr : vAddr) {
+		if(!nodeInVector(addr, element)) {
+			element.push_back(addr);
 		}
-		vAddr.push_back(n);
-		count++;
-	}
-	if(!vAddr.empty()) {
-		sendAddrMsg(receiverNode, vAddr);
 	}
 }
 
 void Node::sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr) 
 {
+
 	receiverNode->recvAddrMsg(shared_from_this(), vAddr);
 }
 
-void Node::recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr)
+void Node::recvAddrMsg(Node::ptr originNode, Node::vector& vAddr)
 {
+	//! \constraint We don't check whether a node is in reachable nets, and hence are always forwarding the "addr" messages to two nodes.
+	addKnownNodes(vAddr);
+
 	//! \todo: implement and use timestamps. "lastSeen" for Nodes. We should only forward addrs younger than 10 minutes here.	
-	//! \todo: also, this right now is an infinite loop, how do we schedule the addr messages?
 	
 	time_t now = BTCTopologySimulation::getSimClock();
 
@@ -202,27 +196,43 @@ void Node::recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr)
 				}
 		}
 	}
-	for(Node::ptr n : sendAddrNodes) {
-		sendAddrMsg(n, vAddr);
+
+	// relay to the other nodes
+	if(!nodeInVector(originNode, relayedAddrFrom) && vAddr.size() <= 10) {
+		for(Node::ptr n : sendAddrNodes) {
+			//! \constraint We schedule here, instead of sending directly to avoid a infinite loop
+			scheduleAddrMsg(n, vAddr);
+		}
 	}
 
-	//! \constraint We don't check whether a node is in reachable nets, and hence are always forwarding the "addr" messages to two nodes.
-	addKnownNodes(vAddr);
+	if(vAddr.size() < 1000) {
+		auto it = findNodeInVector(originNode, relayedAddrFrom);
+		if (it != std::end(relayedAddrFrom)) {
+			relayedAddrFrom.erase(it);
+		}
+	}
+
 }
 
-Node::vector Node::sendGetaddrMsg(Node::ptr receiverNode)
+void Node::sendGetaddrMsg(Node::ptr receiverNode)
 {
-	return receiverNode->recvGetaddrMsg();
+	relayedAddrFrom.push_back(receiverNode);
+	receiverNode->recvGetaddrMsg(shared_from_this());
 }
 
-Node::vector Node::recvGetaddrMsg() {
+void Node::recvGetaddrMsg(Node::ptr senderNode) {
 	Node::vector result;
 	int max = 0.23 * knownNodes.size() < 2500 ? 0.23 * knownNodes.size() : 2500; // return 2500 addresses at maximum, else 23% of knownNodes
+	//! \constraint but still, only send 1000 addrs at max
+	max =  max < 1000 ? max : 1000;
 	for (int i = 0; i < max; ++i) {
 		Node::ptr n = randomNodeOfMap(knownNodes);
+		while(nodeInVector(n, result)) {
+			n = randomNodeOfMap(knownNodes);
+		}
 		result.push_back(n);
 	}
-	return result;
+	sendAddrMsg(senderNode, result);
 }
 
 std::string Node::getID() const
@@ -234,6 +244,7 @@ void Node::start()
 {
 	LOG("Starting Node " << getID() << ".");
 	online = true;
+	simCTX->setNodeOnline(shared_from_this());
 	fillConnections();
 	if(connections.size() >= 2) {
 		LOG("\tEnough P2P peers available, skipping DNS seeding");
@@ -250,6 +261,7 @@ void Node::stop()
 {
 	LOG("Stopping Node " << getID() << ".");
 	online = false;
+	simCTX->setNodeOffline(shared_from_this());
 	for(Node::ptr n : connections) {
 		disconnect(n);
 	}
@@ -266,7 +278,21 @@ void Node::maintenance()
 	// check if all our connections are still online
 	for (Node::ptr node : connections) {
 		if(!node->isReachable()) {
-			connections.erase(std::remove(std::begin(connections), std::end(connections), node), std::end(connections));
+			disconnect(node);
+		}
+	}
+
+	for(auto it = std::begin(addrMessagesToSend); it != std::end(addrMessagesToSend);) {
+		Node::ptr node = knownNodes[it->first];
+
+		//! \constraint Bitcoins sends addr messages around every 100ms, but only with a probability of 1 / number of connections
+		unsigned int numberOfConnections = connections.size() + inboundConnections.size();
+		bool send = rand() / (RAND_MAX + 1.0) < (1.0 / numberOfConnections);
+		if(send) {
+			sendAddrMsg(node, it->second);
+			it = addrMessagesToSend.erase(it);
+		} else {
+			++it;
 		}
 	}
 
@@ -353,6 +379,7 @@ Node::vector CrawlerNode::getGoodNodes()
 
 DNSSeeder::DNSSeeder(BTCTopologySimulation* simCTX) : cacheHits(0), crawlerNode(std::make_shared<CrawlerNode>(simCTX)), simCTX(simCTX) 
 {
+	LOG("Starting DNSSeeder " << crawlerNode->getID());
 	// force building the cache after starting
 	cacheHit(true);
 }
@@ -397,6 +424,14 @@ Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector)
 {
 	auto it = std::find_if(vector.begin(), vector.end(), [node](Node::ptr const p) {
 	    return (*p == *node);
+	});
+	return it;
+}
+
+Node::vector::iterator findNodeInVector(std::string nodeID, Node::vector& vector) 
+{
+	auto it = std::find_if(vector.begin(), vector.end(), [nodeID](Node::ptr const p) {
+	    return (p->getID() == nodeID);
 	});
 	return it;
 }

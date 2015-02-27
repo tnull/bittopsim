@@ -54,6 +54,18 @@ class BTCTopologySimulation
 		 * \brief returns the list of nodes spawned
 		 */
 		Node::vector getAllNodes();
+
+		/*!
+		 * \brief set the online status of a Node
+		 * \param node is the node to be set online
+		 */
+		void setNodeOnline(Node::ptr node);
+
+		/*!
+		 * \brief set the offline status of a Node
+		 * \param node is the node to be set offline
+		 */
+		void setNodeOffline(Node::ptr node);
 	private:
 
 		/*! \brief calculate and print the data analysis */
@@ -78,6 +90,7 @@ class BTCTopologySimulation
 		static time_t simClock; //!< the current time for the simulation
 		DNSSeeder::ptr seed; //!< the DNSSeeder
 		Node::vector allNodes; //!< all nodes spawned
+		Node::map onlineNodes; //!< all online nodes
 		std::unordered_map<time_t, Node::vector> bootSchedule; //!< the times at which a node should be bootstrapped.
 };
 

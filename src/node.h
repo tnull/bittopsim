@@ -75,24 +75,22 @@ public:
 
 	/*!
 	 * \brief receives an "version" message
-	 * \param senderNode is the node we received the message from.
 	 */
 	void recvVersionMsg(Node::ptr senderNode);
 
 	/*!
 	 * \brief receives an "addr" message
 	 * This function receives "addr" messages from another Node. This will forward the received vAddr to _two_ connected Nodes and save them if the node doesn't have enough yet.
-	 * \param senderNode is the node we received the message from.
+	 * \param originNode the Node we got the addr message from.
 	 * \param vAddr is a Node::vector of addresses
 	 */
-	void recvAddrMsg(Node::ptr senderNode, Node::vector& vAddr);
+	void recvAddrMsg(Node::ptr originNode, Node::vector& vAddr);
 
 
 	/*!
 	 * \brief receives an "getaddr" message
-	 * \return Node::vector of addresses
 	 */
-	Node::vector recvGetaddrMsg();
+	void recvGetaddrMsg(Node::ptr senderNode);
 
 	/*!
 	 * \brief returns the ID of the Node, aka converts the Node IP to a String ID
@@ -169,22 +167,22 @@ private:
 	/*! 
 	 * \brief sends an "getaddr" message to the node
 	 * \param receiverNode is the Node the message will be sent to
-	 * \return Node::vector of addresses
 	 */
-	Node::vector sendGetaddrMsg(Node::ptr receiverNode);
+	void sendGetaddrMsg(Node::ptr receiverNode);
 
-	/*! 
-	 * \brief sends an "addr" message to the node, with up to 1000 knownNodes
-	 * \param receiverNode to send to
-	 */
-	void sendAddrMsg(Node::ptr receiverNode);
-	
 	/*! 
 	 * \brief sends an "addr" message to the node
 	 * \param receiverNode is the Node the message will be sent to.
 	 * \param vAddr is the Node::vector of addresses which will be sent to receiverNode.
 	 */
 	void sendAddrMsg(Node::ptr receiverNode, Node::vector& vAddr);
+
+	/*! 
+	 * \brief schedules "addr" messages to a node, which will be sent at next maintenance
+	 * \param receiverNode is the Node the message will be sent to.
+	 * \param vAddr is the Node::vector of addresses which will be sent to receiverNode.
+	 */
+	void scheduleAddrMsg(Node::ptr receiverNode, Node::vector& vAddr);
 
 	/*!
 	 * \brief generates a random IP, also used as ID for the clients
@@ -196,7 +194,9 @@ private:
 	Node::vector connections; //!< The connected (outbound) Nodes
 	Node::vector inboundConnections; //!< open inbound connections
 	Node::vector sendAddrNodes; //!< these nodes will be used to send addrs to for 24h, then there will be new ones.
+	Node::vector relayedAddrFrom; //!< saves the nodes we already relayed an addr message from
 	time_t sendAddrNodesLastFill; //!< Last time we filled the sendAddrNodes.
+	std::unordered_map<std::string, Node::vector> addrMessagesToSend; //! The vector of addr messages to send next tick.
 };
 
 /*! 
@@ -272,6 +272,7 @@ bool nodeInVector(Node::ptr node, Node::vector& vector);
  * \param vector to look in
  */
 Node::vector::iterator findNodeInVector(Node::ptr node, Node::vector& vector);
+Node::vector::iterator findNodeInVector(std::string nodeID, Node::vector& vector);
 
 /*!
  * \brief returns a random Node out of a vector
