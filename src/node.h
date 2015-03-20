@@ -18,7 +18,7 @@
 #include <boost/graph/floyd_warshall_shortest.hpp>
 #include <boost/graph/geodesic_distance.hpp>
 
-class BTCTopologySimulation;
+class Simulation;
 class DNSSeeder;
 
 /*! 
@@ -39,7 +39,7 @@ public:
 	 * \param acceptInboundConnections: decides if the Node will be a client or a server, defaults to server.
 	 * \param online decides if the Node will be online at creation. Only viable for CrawlerNodes (so far)
 	 */
-	Node(BTCTopologySimulation* simCTX, bool acceptInboundConnections = true, bool online = false);
+	Node(Simulation* simCTX, bool acceptInboundConnections = true, bool online = false);
 	~Node();
 
 	/*! 
@@ -140,7 +140,7 @@ public:
 protected:
 
 	Node::map knownNodes; //!< The known Nodes of this Node
-	BTCTopologySimulation* simCTX; //!< the simulation the DNSSeeder belongs to
+	Simulation* simCTX; //!< the simulation the DNSSeeder belongs to
 	bool acceptInboundConnections; //!< does this node accept inbound connections?
 	bool online; //!< is this node online?
 private:
@@ -211,7 +211,7 @@ public:
 	 * \brief Constructor for the CrawlerNode
 	 * \param simCTX: a pointer to the simulation which spawned it.
 	 */
-	CrawlerNode(BTCTopologySimulation *simCTX);
+	CrawlerNode(Simulation *simCTX);
 	~CrawlerNode();
 
 	/*!
@@ -236,7 +236,7 @@ public:
 	 * \brief Constructor of the DNSSeeder
 	 * \param simCTX: a pointer to the simulation the seeder belongs to.
 	 */
-	DNSSeeder(BTCTopologySimulation* simCTX);
+	DNSSeeder(Simulation* simCTX);
 	~DNSSeeder();
 
 	/*!
@@ -256,7 +256,7 @@ private:
 	time_t cacheTime; //!< last time a cache was created
 	int cacheHits; //!< number of cache hits for this cache
 	CrawlerNode::ptr crawlerNode; //!< the Bitcoin Node of the seeder
-	BTCTopologySimulation* simCTX; //!< the simulation the DNSSeeder belongs to
+	Simulation* simCTX; //!< the simulation the DNSSeeder belongs to
 };
 
 /*! 

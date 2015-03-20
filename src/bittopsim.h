@@ -1,11 +1,11 @@
 /*!
- * \mainpage btctopologysim
+ * \mainpage bittopsim - Bitcoin Topology Simulation
  *
  * Bitcoin topology simulator
  * \author Elias Rohrer
  */
-#ifndef BTCTOPOLOGYSIM_H
-#define BTCTOPOLOGYSIM_H
+#ifndef BITTOPSIM_H
+#define BITTOPSIM_H
 
 #include "node.h"
 #include <ctime>
@@ -15,7 +15,7 @@
 /*!
  * \brief Represents a simulation of the Bitcoin network's topology.
  */
-class BTCTopologySimulation
+class Simulation
 {
 	public:
 		/*!
@@ -25,8 +25,8 @@ class BTCTopologySimulation
 		 * \param endSimulationTime: the time the simulation should stop.
 		 * \param graphFilePath: the file path the graphviz graph will be written to.
 		 */
-		BTCTopologySimulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t endSimulationTime, std::string graphFilePath);
-		~BTCTopologySimulation();
+		Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t endSimulationTime, std::string graphFilePath);
+		~Simulation();
 
 		/*!
 		 * bootstrap this Node with the hardcoded dnsseeds
@@ -94,4 +94,4 @@ class BTCTopologySimulation
 		std::unordered_map<time_t, Node::vector> bootSchedule; //!< the times at which a node should be bootstrapped.
 };
 
-#endif //BTCTOPOLOGYSIM_H
+#endif //BITTOPSIM_H

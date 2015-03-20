@@ -1,13 +1,13 @@
-#include "btctopologysim.h"
+#include "bittopsim.h"
 #include <iostream>
 #include "constants.h"
 #include <boost/graph/random.hpp> // for the random graph
 #include <boost/random/mersenne_twister.hpp> // for the random number generator
 
 
-time_t BTCTopologySimulation::simClock; /// the current time for the simulation
+time_t Simulation::simClock; /// the current time for the simulation
 
-BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t simDuration, std::string graphFilePath)
+Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t simDuration, std::string graphFilePath)
 {
 
 	// time our sim should stop
@@ -70,23 +70,23 @@ BTCTopologySimulation::BTCTopologySimulation(unsigned int numberOfServerNodes, u
 }
 
 
-BTCTopologySimulation::~BTCTopologySimulation()
+Simulation::~Simulation()
 {
 	// clean up
 	allNodes.clear();
 }
 
-time_t BTCTopologySimulation::getSimClock()
+time_t Simulation::getSimClock()
 {
-	return BTCTopologySimulation::simClock;
+	return Simulation::simClock;
 }
 
-time_t BTCTopologySimulation::tickSimClock()
+time_t Simulation::tickSimClock()
 {
-	return ++BTCTopologySimulation::simClock;
+	return ++Simulation::simClock;
 }
 
-void BTCTopologySimulation::calculateAndPrintData(Graph& g, Graph& randomGraph)
+void Simulation::calculateAndPrintData(Graph& g, Graph& randomGraph)
 {
 	// calculate clustering coefs
 	float cc =calculateClustering(g);
@@ -115,7 +115,7 @@ void BTCTopologySimulation::calculateAndPrintData(Graph& g, Graph& randomGraph)
 	std::cout << std::setw(20) << "Diameter" << "\t | " << std::setw(10) << diameter << " | " << std::setw(10) << randomDiameter << std::endl;
 }
 
-void BTCTopologySimulation::writeGraphs(Graph& g, Graph& randomGraph, std::string graphFilePath)
+void Simulation::writeGraphs(Graph& g, Graph& randomGraph, std::string graphFilePath)
 {
 	std::map<std::string,std::string> graph_attr, vertex_attr, edge_attr;
 	graph_attr["ratio"] = "auto";
@@ -143,7 +143,7 @@ void BTCTopologySimulation::writeGraphs(Graph& g, Graph& randomGraph, std::strin
 	}
 }
 
-float BTCTopologySimulation::calculateClustering(Graph& g)
+float Simulation::calculateClustering(Graph& g)
 {
 	ClusteringContainer coefs(boost::num_vertices(g));
 
@@ -153,7 +153,7 @@ float BTCTopologySimulation::calculateClustering(Graph& g)
 	return cc;
 }
 
-DistanceMatrix BTCTopologySimulation::calculateDistances(Graph& g)
+DistanceMatrix Simulation::calculateDistances(Graph& g)
 {
 	WeightMap wm(boost::get(&EdgeProperty::probability, g));
 	DistanceMatrix distances(boost::num_vertices(g));
@@ -162,7 +162,7 @@ DistanceMatrix BTCTopologySimulation::calculateDistances(Graph& g)
 	return distances;
 }
 
-float BTCTopologySimulation::calculateMeanGeodesic(Graph& g, DistanceMatrix& distances)
+float Simulation::calculateMeanGeodesic(Graph& g, DistanceMatrix& distances)
 {
     DistanceMatrixMap dm(distances, g);
 	GeodesicContainer geodesic(boost::num_vertices(g));
@@ -171,7 +171,7 @@ float BTCTopologySimulation::calculateMeanGeodesic(Graph& g, DistanceMatrix& dis
 	return mean_geodesic;
 }
 
-unsigned long BTCTopologySimulation::calculateDiameter(Graph& g, DistanceMatrix& distances)
+unsigned long Simulation::calculateDiameter(Graph& g, DistanceMatrix& distances)
 {
 	unsigned long maxDistance = 0;
 	for(unsigned long i = 0; i < boost::num_vertices(g); ++i) {
@@ -182,23 +182,23 @@ unsigned long BTCTopologySimulation::calculateDiameter(Graph& g, DistanceMatrix&
 	return maxDistance;
 }
 
-DNSSeeder::ptr BTCTopologySimulation::getDNSSeeder() 
+DNSSeeder::ptr Simulation::getDNSSeeder() 
 {
 	return seed;
 }
 
-Node::vector BTCTopologySimulation::getAllNodes() 
+Node::vector Simulation::getAllNodes() 
 {
 	return allNodes;
 }
 
 
-void BTCTopologySimulation::setNodeOnline(Node::ptr node) 
+void Simulation::setNodeOnline(Node::ptr node) 
 {
 	onlineNodes[node->getID()] = node;
 }
 
-void BTCTopologySimulation::setNodeOffline(Node::ptr node)
+void Simulation::setNodeOffline(Node::ptr node)
 {
 	onlineNodes.erase(node->getID());
 }
@@ -237,6 +237,6 @@ int main(int argc, char* argv[])
 	}
 	// seed random number generator
 	srand(time(NULL));
-	BTCTopologySimulation sim(numberOfServerNodes, numberOfClientNodes, simDuration, graphFilePath);
+	Simulation sim(numberOfServerNodes, numberOfClientNodes, simDuration, graphFilePath);
 	return 0;
 }

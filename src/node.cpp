@@ -1,11 +1,11 @@
 #include "node.h"
 #include "constants.h"
-#include "btctopologysim.h"
+#include "bittopsim.h"
 #include <iostream>
 #include <cstring>
 #include <arpa/inet.h>
 
-Node::Node(BTCTopologySimulation *simCTX, bool acceptInboundConnections, bool online) : simCTX(simCTX), acceptInboundConnections(acceptInboundConnections), online(online), identifier(generateRandomIP()), sendAddrNodesLastFill(0) {}
+Node::Node(Simulation *simCTX, bool acceptInboundConnections, bool online) : simCTX(simCTX), acceptInboundConnections(acceptInboundConnections), online(online), identifier(generateRandomIP()), sendAddrNodesLastFill(0) {}
 
 Node::~Node() {}
 
@@ -167,7 +167,7 @@ void Node::recvAddrMsg(Node::ptr originNode, Node::vector& vAddr)
 
 	//! \todo: implement and use timestamps. "lastSeen" for Nodes. We should only forward addrs younger than 10 minutes here.	
 	
-	time_t now = BTCTopologySimulation::getSimClock();
+	time_t now = Simulation::getSimClock();
 
 	// if we send for the first time, or we sent for 24h to the same nodes, get new random nodes.
 	if(sendAddrNodes.size() == 0 || sendAddrNodesLastFill + 86400 < now) {
@@ -362,7 +362,7 @@ std::string Node::generateRandomIP()
 }
 
 
-CrawlerNode::CrawlerNode(BTCTopologySimulation* simCTX) : Node(simCTX, true, true)
+CrawlerNode::CrawlerNode(Simulation* simCTX) : Node(simCTX, true, true)
 {
 	// fill our goodNodes with all reachable nodes for bootstrap.
 	//! \constraint We assume that bootstrapping by iterating over all nodes is ok.
@@ -377,7 +377,7 @@ Node::vector CrawlerNode::getGoodNodes()
 	return goodNodes;
 }
 
-DNSSeeder::DNSSeeder(BTCTopologySimulation* simCTX) : cacheHits(0), crawlerNode(std::make_shared<CrawlerNode>(simCTX)), simCTX(simCTX) 
+DNSSeeder::DNSSeeder(Simulation* simCTX) : cacheHits(0), crawlerNode(std::make_shared<CrawlerNode>(simCTX)), simCTX(simCTX) 
 {
 	LOG("Starting DNSSeeder " << crawlerNode->getID());
 	// force building the cache after starting
@@ -399,7 +399,7 @@ void DNSSeeder::cacheHit(bool force)
 {
 	Node::vector goodNodes = crawlerNode->getGoodNodes();
 	int cacheSize = nodeCache.size();
-	time_t now = BTCTopologySimulation::getSimClock();
+	time_t now = Simulation::getSimClock();
 	cacheHits++;
 	if (force || cacheHits > (cacheSize * cacheSize) / 400 || ((cacheHits * cacheHits) > cacheSize / 20 && now - cacheTime > 5)) {
 		LOG("\tDNSSeeder is rebuilding nodeCache - force: " << std::boolalpha << force << " cacheHits: " << cacheHits << " cacheSize: " << cacheSize);

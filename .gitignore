@@ -2,7 +2,8 @@ tags
 src/*.o
 *.swp
 src/Makefile.bak
-src/btctopologysim
+src/bittopsim
 doc/*
 .DS_Store
 graphs
+src/*.gv

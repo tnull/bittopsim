@@ -3,7 +3,7 @@
 
 #include <iomanip>
 
-#define LOG(msg) std::cout << std::setw(10) << BTCTopologySimulation::getSimClock() << ": " << msg << std::endl
+#define LOG(msg) std::cout << std::setw(10) << Simulation::getSimClock() << ": " << msg << std::endl
 
 /*!
  * The maximum number of peers a new Node gets via bootstrapping
