@@ -41,7 +41,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 	}
 
 	seed = std::make_shared<DNSSeeder>(this);
-	seed->getCrawlerNode()->start();
+	allNodes.push_back(seed->getCrawlerNode());
 	
 	// To test, generate some nodes at first
 	for (; getSimClock() < endTime; tickSimClock()) {
@@ -52,6 +52,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 		for (auto it : onlineNodes) {
 			it.second->maintenance();
 		}
+		seed->getCrawlerNode()->maintenance();
 	}
 
 	// generate the graph

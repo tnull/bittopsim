@@ -62,7 +62,10 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 		if (fOneShot) {
 			scheduleDisconnect(destNode);
 		}
-		addKnownNode(destNode);
+
+		if(destNode->isReachable()) {
+			addKnownNode(destNode);
+		}
 
 		// if we already have an inbound connection, change it to outbound...
 		auto it = findNodeInVector(destNode, inboundConnections);
@@ -72,10 +75,10 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 
 		if(!nodeInVector(destNode, connections)) {
 			connections.push_back(destNode);
+			LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << connections.size() << "/" << MAXOUTBOUNDPEERS << " out | " << inboundConnections.size() << " in ]");
+			sendVersionMsg(destNode);
 		}
 
-		LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << connections.size() << "/" << MAXOUTBOUNDPEERS << " out | " << inboundConnections.size() << " in ]");
-		sendVersionMsg(destNode);
 	}
 
 	return connection;
@@ -106,7 +109,9 @@ void Node::recvVersionMsg(Node::ptr senderNode)
 {
 	if(nodeInVector(senderNode, inboundConnections)) {
 		sendVersionMsg(senderNode);
-		addKnownNode(senderNode);
+		if(senderNode->isReachable()) {
+			addKnownNode(senderNode);
+		}
 	} else {
 		Node::vector addr;
 		addr.push_back(shared_from_this());
@@ -321,17 +326,16 @@ void Node::fillConnections()
 	unsigned int numberOfConnections = MAXOUTBOUNDPEERS < inboundConnections.size() ? MAXOUTBOUNDPEERS : inboundConnections.size();
 	
 	// first fill with inbound connections
-	while (connections.size() < numberOfConnections && !inboundConnections.empty()) {
+	//! \todo hack to avoid infinite loop, how does bitcoin handle connection refill? should all connections be in connections and just the inbound additionally in inbound?
+	if (connections.size() < numberOfConnections && !inboundConnections.empty()) {
 		Node::ptr n = randomNodeOfVector(inboundConnections);
-		while(!n->isReachable() || nodeInVector(n, connections)) {
-			n = randomNodeOfVector(inboundConnections);
-		}
 		connect(n);
 	}
 
 	numberOfConnections = MAXOUTBOUNDPEERS < knownNodes.size() ? MAXOUTBOUNDPEERS : knownNodes.size();
 	// Choose random Nodes of knownNodes
-	while (connections.size() < numberOfConnections) {
+	//! \constraint fill one connection per tick
+	if (connections.size() < numberOfConnections) {
 
 		// randomly choose nodes until we have a distinct, reachable set
 		Node::ptr n = randomNodeOfMap(knownNodes);
@@ -395,6 +399,7 @@ bool CrawlerNode::connect(Node::ptr destNode, bool fOneShot)
 void CrawlerNode::maintenance()
 {
 	//! \constraint we just add to goodNodes, which makes the probability higher that stable peers get chosen by luck
+	goodNodes.clear();
 	for (auto it : simCTX->getOnlineNodes()) {
 		goodNodes.push_back(it.second);
 	}
@@ -416,9 +421,6 @@ DNSSeeder::DNSSeeder(Simulation* simCTX) : cacheHits(0), crawlerNode(std::make_s
 Node::vector DNSSeeder::queryDNS()
 {
 	cacheHit();
-	for(Node::ptr n : nodeCache) {
-		LOG("\t\t\t DNS returning node: " << n->getID());
-	}
 	return nodeCache;
 }
 
