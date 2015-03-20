@@ -41,6 +41,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 	}
 
 	seed = std::make_shared<DNSSeeder>(this);
+	seed->getCrawlerNode()->start();
 	
 	// To test, generate some nodes at first
 	for (; getSimClock() < endTime; tickSimClock()) {
@@ -202,6 +203,11 @@ void Simulation::setNodeOffline(Node::ptr node)
 {
 	onlineNodes.erase(node->getID());
 }
+
+Node::map Simulation::getOnlineNodes() {
+	return onlineNodes;
+}
+
 int main(int argc, char* argv[]) 
 {
 	// number of server nodes to create

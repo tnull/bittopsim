@@ -66,6 +66,8 @@ class Simulation
 		 * \param node is the node to be set offline
 		 */
 		void setNodeOffline(Node::ptr node);
+
+		Node::map getOnlineNodes();
 	private:
 
 		/*! \brief calculate and print the data analysis */

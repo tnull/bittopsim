@@ -53,28 +53,29 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 	if(connections.size() >= MAXOUTBOUNDPEERS || connections.size() + inboundConnections.size() >= MAXCONNECTEDPEERS) return false;
 
 	// don't connect to already connected Node...
-	if (nodeInVector(destNode, connections)) return false;
+	if (nodeInVector(destNode, connections)) return true;
 	
 	// establish connection
 	bool connection = destNode->inboundConnect(shared_from_this());
 
-	addKnownNode(destNode);
+	if(connection) {
+		if (fOneShot) {
+			scheduleDisconnect(destNode);
+		}
+		addKnownNode(destNode);
 
-	// if we already have an inbound connection, change it to outbound...
-	auto it = findNodeInVector(destNode, inboundConnections);
-	if (it != std::end(inboundConnections)) {
-		inboundConnections.erase(it);
-	}
+		// if we already have an inbound connection, change it to outbound...
+		auto it = findNodeInVector(destNode, inboundConnections);
+		if (it != std::end(inboundConnections)) {
+			inboundConnections.erase(it);
+		}
 
-	if(!nodeInVector(destNode, connections)) {
-		connections.push_back(destNode);
-	}
+		if(!nodeInVector(destNode, connections)) {
+			connections.push_back(destNode);
+		}
 
-	LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << connections.size() << "/" << MAXOUTBOUNDPEERS << " out | " << inboundConnections.size() << " in ]");
-	sendVersionMsg(destNode);
-	
-	if(fOneShot) {
-		disconnect(destNode);
+		LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << connections.size() << "/" << MAXOUTBOUNDPEERS << " out | " << inboundConnections.size() << " in ]");
+		sendVersionMsg(destNode);
 	}
 
 	return connection;
@@ -151,6 +152,12 @@ void Node::scheduleAddrMsg(Node::ptr receiverNode, Node::vector& vAddr)
 		if(!nodeInVector(addr, element)) {
 			element.push_back(addr);
 		}
+	}
+}
+
+void Node::scheduleDisconnect(Node::ptr node) {
+	if(!nodeInVector(node, disconnectSchedule)) {
+		disconnectSchedule.push_back(node);
 	}
 }
 
@@ -279,8 +286,16 @@ void Node::maintenance()
 	for (Node::ptr node : connections) {
 		if(!node->isReachable()) {
 			disconnect(node);
+
+			//! \constraint we remove known nodes directly when we can't reach them anymore
+			removeKnownNode(node);
 		}
 	}
+
+	for (Node::ptr node : disconnectSchedule) {
+		disconnect(node);
+	}
+	disconnectSchedule.clear();
 
 	for(auto it = std::begin(addrMessagesToSend); it != std::end(addrMessagesToSend);) {
 		Node::ptr node = knownNodes[it->first];
@@ -366,12 +381,26 @@ CrawlerNode::CrawlerNode(Simulation* simCTX) : Node(simCTX, true, true)
 {
 	// fill our goodNodes with all reachable nodes for bootstrap.
 	//! \constraint We assume that bootstrapping by iterating over all nodes is ok.
-	Node::vector nodes = simCTX -> getAllNodes();
-	for(Node::ptr node : nodes) {
-		if(node->isReachable()) goodNodes.push_back(node);
+	for (auto it : simCTX->getOnlineNodes()) {
+		goodNodes.push_back(it.second);
 	}
 }
 CrawlerNode::~CrawlerNode() {}
+
+bool CrawlerNode::connect(Node::ptr destNode, bool fOneShot) 
+{
+	return Node::connect(destNode, true);
+}
+
+void CrawlerNode::maintenance()
+{
+	//! \constraint we just add to goodNodes, which makes the probability higher that stable peers get chosen by luck
+	for (auto it : simCTX->getOnlineNodes()) {
+		goodNodes.push_back(it.second);
+	}
+	Node::maintenance();
+}
+
 Node::vector CrawlerNode::getGoodNodes() 
 {
 	return goodNodes;
@@ -387,6 +416,9 @@ DNSSeeder::DNSSeeder(Simulation* simCTX) : cacheHits(0), crawlerNode(std::make_s
 Node::vector DNSSeeder::queryDNS()
 {
 	cacheHit();
+	for(Node::ptr n : nodeCache) {
+		LOG("\t\t\t DNS returning node: " << n->getID());
+	}
 	return nodeCache;
 }
 

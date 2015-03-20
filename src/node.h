@@ -143,7 +143,7 @@ protected:
 	Simulation* simCTX; //!< the simulation the DNSSeeder belongs to
 	bool acceptInboundConnections; //!< does this node accept inbound connections?
 	bool online; //!< is this node online?
-private:
+
 	/*!
 	 * @brief connects to an other node.
 	 * @param destNode is the Node the connection will be made to. 
@@ -151,6 +151,7 @@ private:
 	 * @return true if the connection could be established, else false.
 	 */
 	bool connect(Node::ptr destNode, bool fOneShot = false);
+private:
 
 	/*!
 	 * @brief disconnects from an other node.
@@ -184,6 +185,12 @@ private:
 	 */
 	void scheduleAddrMsg(Node::ptr receiverNode, Node::vector& vAddr);
 
+	/*! 
+	 * \brief schedules a disconnect next tick, this is important for fOneShot
+	 * \param node is the node to disconnect from
+	 */
+	void scheduleDisconnect(Node::ptr node);
+
 	/*!
 	 * \brief generates a random IP, also used as ID for the clients
 	 * \return std::string with the ID
@@ -197,6 +204,7 @@ private:
 	Node::vector relayedAddrFrom; //!< saves the nodes we already relayed an addr message from
 	time_t sendAddrNodesLastFill; //!< Last time we filled the sendAddrNodes.
 	std::unordered_map<std::string, Node::vector> addrMessagesToSend; //! The vector of addr messages to send next tick.
+	Node::vector disconnectSchedule; //!< Saves the node to disconnect from next tick
 };
 
 /*! 
@@ -219,6 +227,11 @@ public:
 	 */
 	Node::vector getGoodNodes();
 
+	void maintenance();
+
+protected:
+
+	bool connect(Node::ptr destNode, bool fOneShot = true);
 private:
 	Node::vector goodNodes; //!< only the good Nodes \todo implement goodNodes!
 };
