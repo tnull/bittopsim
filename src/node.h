@@ -200,6 +200,8 @@ private:
 	std::string identifier; //!< the IP of the Node, also used as an ID
 	Node::vector connections; //!< The connected (outbound) Nodes
 	Node::vector inboundConnections; //!< open inbound connections
+	unsigned int nOutboundConnections;
+	unsigned int nInboundConnections;
 	Node::vector sendAddrNodes; //!< these nodes will be used to send addrs to for 24h, then there will be new ones.
 	Node::vector relayedAddrFrom; //!< saves the nodes we already relayed an addr message from
 	time_t sendAddrNodesLastFill; //!< Last time we filled the sendAddrNodes.

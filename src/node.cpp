@@ -4,8 +4,9 @@
 #include <iostream>
 #include <cstring>
 #include <arpa/inet.h>
+#include <cassert>
 
-Node::Node(Simulation *simCTX, bool acceptInboundConnections, bool online) : simCTX(simCTX), acceptInboundConnections(acceptInboundConnections), online(online), identifier(generateRandomIP()), sendAddrNodesLastFill(0) {}
+Node::Node(Simulation *simCTX, bool acceptInboundConnections, bool online) : simCTX(simCTX), acceptInboundConnections(acceptInboundConnections), online(online), identifier(generateRandomIP()), nOutboundConnections(0), nInboundConnections(0), sendAddrNodesLastFill(0) {}
 
 Node::~Node() {}
 
@@ -14,16 +15,21 @@ bool Node::inboundConnect(Node::ptr originNode)
 	if(!acceptInboundConnections) return false;
 	if(*originNode == *this) return false;
 
-	addKnownNode(originNode);
-
-	if(connections.size() + inboundConnections.size() >= MAXCONNECTEDPEERS) return false;
-
-	if(!nodeInVector(originNode, inboundConnections)) {
-		LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " <-- " << std::setw(15) << originNode->getID() << " [" << connections.size() << "/" << MAXOUTBOUNDPEERS << " out | " << inboundConnections.size() << " in ]");
-		inboundConnections.push_back(originNode);
+	if(originNode->isReachable()) {
+		addKnownNode(originNode);
 	}
 
-	//! \todo check what else to do...
+	if(nOutboundConnections + nInboundConnections >= MAXCONNECTEDPEERS) return false;
+
+	if(!nodeInVector(originNode, inboundConnections)) {
+		LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " <-- " << std::setw(15) << originNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ]");
+		connections.push_back(originNode);
+		inboundConnections.push_back(originNode);
+		nInboundConnections++;
+		assert(inboundConnections.size() == nInboundConnections);
+		assert(connections.size() == nOutboundConnections + nInboundConnections);
+	}
+
 	return true;
 }
 
@@ -33,12 +39,16 @@ void Node::inboundDisconnect(Node::ptr originNode)
 	auto it = findNodeInVector(originNode, connections);
 	if(it != std::end(connections)) {
 		connections.erase(it);
+		auto iit = findNodeInVector(originNode, inboundConnections);
+		if(iit != std::end(inboundConnections)) {
+			inboundConnections.erase(iit);
+			nInboundConnections--;
+		} else {
+			nOutboundConnections--;
+		}
 	}
-
-	auto iit = findNodeInVector(originNode, inboundConnections);
-	if(iit != std::end(inboundConnections)) {
-		inboundConnections.erase(iit);
-	}
+	assert(inboundConnections.size() == nInboundConnections);
+	assert(connections.size() == nOutboundConnections + nInboundConnections);
 }
 
 bool Node::connect(Node::ptr destNode, bool fOneShot)
@@ -50,7 +60,7 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 	if (*destNode == *this) return false;
 
 	// don't connect if we have enough peers
-	if(connections.size() >= MAXOUTBOUNDPEERS || connections.size() + inboundConnections.size() >= MAXCONNECTEDPEERS) return false;
+	if(nOutboundConnections >= MAXOUTBOUNDPEERS || nOutboundConnections + nInboundConnections >= MAXCONNECTEDPEERS) return false;
 
 	// don't connect to already connected Node...
 	if (nodeInVector(destNode, connections)) return true;
@@ -59,6 +69,9 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 	bool connection = destNode->inboundConnect(shared_from_this());
 
 	if(connection) {
+		connections.push_back(destNode);
+		nOutboundConnections++;
+
 		if (fOneShot) {
 			scheduleDisconnect(destNode);
 		}
@@ -67,20 +80,13 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 			addKnownNode(destNode);
 		}
 
-		// if we already have an inbound connection, change it to outbound...
-		auto it = findNodeInVector(destNode, inboundConnections);
-		if (it != std::end(inboundConnections)) {
-			inboundConnections.erase(it);
-		}
-
-		if(!nodeInVector(destNode, connections)) {
-			connections.push_back(destNode);
-			LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << connections.size() << "/" << MAXOUTBOUNDPEERS << " out | " << inboundConnections.size() << " in ]");
-			sendVersionMsg(destNode);
-		}
+		LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ]");
+		sendVersionMsg(destNode);
 
 	}
 
+	assert(inboundConnections.size() == nInboundConnections);
+	assert(connections.size() == nOutboundConnections + nInboundConnections);
 	return connection;
 }
 
@@ -92,12 +98,18 @@ void Node::disconnect(Node::ptr destNode)
 	auto it = findNodeInVector(destNode, connections);
 	if (it != std::end(connections)) {
 		connections.erase(it);
+
+		auto iit = findNodeInVector(destNode, inboundConnections);
+		if (iit != std::end(inboundConnections)) {
+			nInboundConnections--;
+			inboundConnections.erase(iit);
+		} else {
+			nOutboundConnections--;
+		}
 	}
 
-	auto iit = findNodeInVector(destNode, inboundConnections);
-	if (iit != std::end(inboundConnections)) {
-		inboundConnections.erase(iit);
-	}
+	assert(inboundConnections.size() == nInboundConnections);
+	assert(connections.size() == nOutboundConnections + nInboundConnections);
 }
 
 void Node::sendVersionMsg(Node::ptr receiverNode)
@@ -320,16 +332,8 @@ void Node::fillConnections()
 {
 	if(knownNodes.empty()) return;
 	// get Minimum of MAXOUTBOUNDPEERS and knownNodes.size() to determine to how many nodes we can connect
-	unsigned int numberOfConnections = MAXOUTBOUNDPEERS < inboundConnections.size() ? MAXOUTBOUNDPEERS : inboundConnections.size();
-	
-	// first fill with inbound connections
-	//! \todo hack to avoid infinite loop, how does bitcoin handle connection refill? should all connections be in connections and just the inbound additionally in inbound?
-	if (connections.size() < numberOfConnections && !inboundConnections.empty()) {
-		Node::ptr n = randomNodeOfVector(inboundConnections);
-		connect(n);
-	}
+	unsigned int numberOfConnections = MAXOUTBOUNDPEERS < knownNodes.size() ? MAXOUTBOUNDPEERS : knownNodes.size();
 
-	numberOfConnections = MAXOUTBOUNDPEERS < knownNodes.size() ? MAXOUTBOUNDPEERS : knownNodes.size();
 	// Choose random Nodes of knownNodes
 	//! \constraint fill one connection per tick
 	if (connections.size() < numberOfConnections) {
@@ -468,7 +472,7 @@ Node::vector::iterator findNodeInVector(std::string nodeID, Node::vector& vector
 
 bool nodeInVector(Node::ptr node, Node::vector& vector) 
 {
-	return findNodeInVector(node, vector) != vector.end();
+	return findNodeInVector(node, vector) != std::end(vector);
 }
 
 Node::ptr randomNodeOfVector(Node::vector& v)
