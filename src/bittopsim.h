@@ -25,7 +25,7 @@ class Simulation
 		 * \param endSimulationTime: the time the simulation should stop.
 		 * \param graphFilePath: the file path the graphviz graph will be written to.
 		 */
-		Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t endSimulationTime, std::string graphFilePath);
+		Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t endSimulationTime, std::string graphFilePath, int churn);
 		~Simulation();
 
 		/*!

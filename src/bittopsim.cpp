@@ -7,7 +7,7 @@
 
 time_t Simulation::simClock; /// the current time for the simulation
 
-Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t simDuration, std::string graphFilePath)
+Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t simDuration, std::string graphFilePath, int churn)
 {
 
 	// time our sim should stop
@@ -54,9 +54,9 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 			it->maintenance();
 		}
 
-	if(churnClock == 10) {
+	if(churn > 0 && churnClock == 10) {
 		//! \constraint ~every 11 seconds 0-3 peers come and go
-		short count = rand() % 3;
+		short count = rand() % churn;
 		for (short s = 0; s < count; ++s) {
 			Node::ptr n = randomNodeOfVector(onlineNodes);
 			if (n != nullptr) {
@@ -64,7 +64,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 			}
 		}
 
-		count = rand() % 3;
+		count = rand() % churn;
 		for (short s = 0; s < count; ++s) {
 			n = randomNodeOfVector(offlineNodes);
 			if (n != nullptr) {
@@ -258,23 +258,28 @@ int main(int argc, char* argv[])
 	// duration of the simulation
 	int simDuration = 86400;
 
+	// churn nodes per 10 seconds
+	int churn = 0;
+
 	// outpath for the graph
 	std::string graphFilePath = "./graph.gv";
 
 	// check arguments
 	switch(argc) {
+		case 6: 
+			graphFilePath = argv[5];
 		case 5: 
-			graphFilePath = argv[4];
+			churn = std::stoi(argv[4]);
 		case 4: 
-				simDuration = std::stoi(argv[3]);
+			simDuration = std::stoi(argv[3]);
 		case 3: 
-				numberOfClientNodes = std::stoi(argv[2]);
+			numberOfClientNodes = std::stoi(argv[2]);
 		case 2: 
-				numberOfServerNodes = std::stoi(argv[1]);
-				break;
+			numberOfServerNodes = std::stoi(argv[1]);
+			break;
 		case 1:
 		default:
-			std::cout << "usage: " << argv[0] << " number_of_server_nodes [number_of_client_nodes] [duration_of_simulation] [graphviz graph file path]" << std::endl;
+			std::cout << "usage: " << argv[0] << " number_of_server_nodes [number_of_client_nodes] [duration_of_simulation] [churn rate in node change per 10 sec.] [graphviz graph file path]" << std::endl;
 			std::cout << "the duration should be provided in seconds, default is 86400 (one day)" << std::endl;
 			std::cout << "the default file path for the graph is \"./graph.gv\"" << std::endl;
 			return 0;
@@ -282,6 +287,6 @@ int main(int argc, char* argv[])
 	}
 	// seed random number generator
 	srand(time(NULL));
-	Simulation sim(numberOfServerNodes, numberOfClientNodes, simDuration, graphFilePath);
+	Simulation sim(numberOfServerNodes, numberOfClientNodes, simDuration, graphFilePath, churn);
 	return 0;
 }

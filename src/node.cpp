@@ -73,14 +73,14 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 		connections.push_back(destNode);
 		nOutboundConnections++;
 
-		if (fOneShot) {
-			scheduleDisconnect(destNode);
-		}
-
 		// disabling output for fOneShot-connections for now
 		//LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ] - fOneShot: " << std::boolalpha << fOneShot);
 		if(!fOneShot) {
 			LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ]");
+		}
+
+		if (fOneShot) {
+			scheduleDisconnect(destNode);
 		}
 		sendVersionMsg(destNode);
 
@@ -404,8 +404,11 @@ CrawlerNode::CrawlerNode(Simulation* simCTX) : Node(simCTX, true, true)
 {
 	// fill our goodNodes with all reachable nodes for bootstrap.
 	//! \constraint We assume that bootstrapping by iterating over all nodes is ok.
+	goodNodes.clear();
 	for (auto it : simCTX->getOnlineNodes()) {
-		goodNodes.push_back(it);
+		if(it->isReachable()) {
+			goodNodes.push_back(it);
+		}
 	}
 }
 CrawlerNode::~CrawlerNode() {}
@@ -417,7 +420,13 @@ bool CrawlerNode::connect(Node::ptr destNode, bool fOneShot)
 
 void CrawlerNode::maintenance()
 {
-	goodNodes = simCTX->getOnlineNodes();
+	goodNodes.clear();
+	for (auto it : simCTX->getOnlineNodes()) {
+		if(it->isReachable()) {
+			goodNodes.push_back(it);
+		}
+	}
+
 
 	checkConnections();
 	runDisconnect();
