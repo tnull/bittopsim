@@ -286,13 +286,15 @@ void Node::stop()
 	LOG("Stopping Node " << getID() << ".");
 	online = false;
 	simCTX->setNodeOffline(shared_from_this());
-	for(Node::ptr n : connections) {
+
+	Node::vector copyConn = connections;
+	for(Node::ptr n : copyConn) {
 		disconnect(n);
 	}
 
-	for(Node::ptr n : inboundConnections) {
-		disconnect(n);
-	}
+	// reset to make sure we dont have connections anymore
+	nOutboundConnections = 0;
+	nInboundConnections = 0;
 	connections.clear();
 	inboundConnections.clear();
 }
@@ -387,7 +389,7 @@ CrawlerNode::CrawlerNode(Simulation* simCTX) : Node(simCTX, true, true)
 	// fill our goodNodes with all reachable nodes for bootstrap.
 	//! \constraint We assume that bootstrapping by iterating over all nodes is ok.
 	for (auto it : simCTX->getOnlineNodes()) {
-		goodNodes.push_back(it.second);
+		goodNodes.push_back(it);
 	}
 }
 CrawlerNode::~CrawlerNode() {}
@@ -401,7 +403,7 @@ void CrawlerNode::maintenance()
 {
 	goodNodes.clear();
 	for (auto it : simCTX->getOnlineNodes()) {
-		goodNodes.push_back(it.second);
+		goodNodes.push_back(it);
 	}
 	Node::maintenance();
 }

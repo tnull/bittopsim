@@ -67,7 +67,7 @@ class Simulation
 		 */
 		void setNodeOffline(Node::ptr node);
 
-		Node::map getOnlineNodes();
+		Node::vector getOnlineNodes();
 	private:
 
 		/*! \brief calculate and print the data analysis */
@@ -92,7 +92,8 @@ class Simulation
 		static time_t simClock; //!< the current time for the simulation
 		DNSSeeder::ptr seed; //!< the DNSSeeder
 		Node::vector allNodes; //!< all nodes spawned
-		Node::map onlineNodes; //!< all online nodes
+		Node::vector onlineNodes; //!< all online nodes
+		Node::vector offlineNodes; //!< all offline nodes
 		std::unordered_map<time_t, Node::vector> bootSchedule; //!< the times at which a node should be bootstrapped.
 };
 

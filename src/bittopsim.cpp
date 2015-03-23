@@ -43,16 +43,37 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 	seed = std::make_shared<DNSSeeder>(this);
 	allNodes.push_back(seed->getCrawlerNode());
 	
-	// To test, generate some nodes at first
+	// main simulation loop
 	short crawlerClock = 0; // crawler stays connected 10 seconds
+	short churnClock = 0; 
 	for (; getSimClock() < endTime; tickSimClock()) {
 		for (Node::ptr node : bootSchedule[getSimClock()]) {
 			node -> start();
 		}
 
 		for (auto it : onlineNodes) {
-			it.second->maintenance();
+			it->maintenance();
 		}
+
+		if(churnClock == 10) {
+			//! \constraint ~ every 10 seconds 0-3 peers comes and goes
+			short count = rand() % 3;
+			for (short s = 0; s < count; ++s) {
+				Node::ptr n = randomNodeOfVector(onlineNodes);
+				if (n != nullptr) {
+					n->stop();
+				}
+			}
+
+			count = rand() % 3;
+			for (short s = 0; s < count; ++s) {
+				n = randomNodeOfVector(offlineNodes);
+				if (n != nullptr) {
+					n->start();
+				}
+			}
+		}
+		churnClock++;
 
 		if(crawlerClock == 10) {
 			seed->getCrawlerNode()->maintenance();
@@ -203,15 +224,27 @@ Node::vector Simulation::getAllNodes()
 
 void Simulation::setNodeOnline(Node::ptr node) 
 {
-	onlineNodes[node->getID()] = node;
+	if(!nodeInVector(node, onlineNodes)) {
+		onlineNodes.push_back(node);
+	}
+	auto it = findNodeInVector(node, offlineNodes);
+	if(it != std::end(offlineNodes)) {
+		offlineNodes.erase(it);
+	}
 }
 
 void Simulation::setNodeOffline(Node::ptr node)
 {
-	onlineNodes.erase(node->getID());
+	if(!nodeInVector(node, offlineNodes)) {
+		offlineNodes.push_back(node);
+	}
+	auto it = findNodeInVector(node, onlineNodes);
+	if(it != std::end(onlineNodes)) {
+		onlineNodes.erase(it);
+	}
 }
 
-Node::map Simulation::getOnlineNodes() {
+Node::vector Simulation::getOnlineNodes() {
 	return onlineNodes;
 }
 
