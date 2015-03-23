@@ -44,6 +44,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 	allNodes.push_back(seed->getCrawlerNode());
 	
 	// To test, generate some nodes at first
+	short crawlerClock = 0; // crawler stays connected 10 seconds
 	for (; getSimClock() < endTime; tickSimClock()) {
 		for (Node::ptr node : bootSchedule[getSimClock()]) {
 			node -> start();
@@ -52,7 +53,12 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 		for (auto it : onlineNodes) {
 			it.second->maintenance();
 		}
-		seed->getCrawlerNode()->maintenance();
+
+		if(crawlerClock == 10) {
+			seed->getCrawlerNode()->maintenance();
+			crawlerClock = 0;
+		}
+		crawlerClock++;
 	}
 
 	// generate the graph

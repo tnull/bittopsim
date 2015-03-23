@@ -302,21 +302,18 @@ void Node::maintenance()
 	}
 	disconnectSchedule.clear();
 
-	for(auto it = std::begin(addrMessagesToSend); it != std::end(addrMessagesToSend);) {
-		Node::ptr node = knownNodes[it->first];
+	fillConnections();
 
-		//! \constraint Bitcoins sends addr messages around every 100ms, but only with a probability of 1 / number of connections
-		unsigned int numberOfConnections = connections.size() + inboundConnections.size();
-		bool send = rand() / (RAND_MAX + 1.0) < (1.0 / numberOfConnections);
-		if(send) {
-			sendAddrMsg(node, it->second);
-			it = addrMessagesToSend.erase(it);
-		} else {
-			++it;
+	//! \constraint Bitcoins sends addr messages around every 100ms, but only with a probability of 1 / number of connections
+	Node::ptr trickleNode = randomNodeOfVector(connections);
+	if(trickleNode != nullptr) {
+		auto it = addrMessagesToSend.find(trickleNode->getID());
+		if(it != std::end(addrMessagesToSend)) {
+			sendAddrMsg(trickleNode, it->second);
+			addrMessagesToSend.erase(it);
 		}
 	}
 
-	fillConnections();
 }
 
 void Node::fillConnections()
@@ -398,7 +395,6 @@ bool CrawlerNode::connect(Node::ptr destNode, bool fOneShot)
 
 void CrawlerNode::maintenance()
 {
-	//! \constraint we just add to goodNodes, which makes the probability higher that stable peers get chosen by luck
 	goodNodes.clear();
 	for (auto it : simCTX->getOnlineNodes()) {
 		goodNodes.push_back(it.second);
