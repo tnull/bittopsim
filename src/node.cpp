@@ -21,11 +21,12 @@ bool Node::inboundConnect(Node::ptr originNode)
 
 	if(nOutboundConnections + nInboundConnections >= MAXCONNECTEDPEERS) return false;
 
-	if(!nodeInVector(originNode, inboundConnections)) {
-		LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " <-- " << std::setw(15) << originNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ]");
+	if(!nodeInVector(originNode, connections)) {
+		//LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " <-- " << std::setw(15) << originNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ]"); 
 		connections.push_back(originNode);
 		inboundConnections.push_back(originNode);
 		nInboundConnections++;
+
 		assert(inboundConnections.size() == nInboundConnections);
 		assert(connections.size() == nOutboundConnections + nInboundConnections);
 	}
@@ -76,11 +77,11 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 			scheduleDisconnect(destNode);
 		}
 
-		if(destNode->isReachable()) {
-			addKnownNode(destNode);
+		// disabling output for fOneShot-connections for now
+		//LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ] - fOneShot: " << std::boolalpha << fOneShot);
+		if(!fOneShot) {
+			LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ]");
 		}
-
-		LOG("\tNode " << std::setw(15) << getID() << std::setw(10) << " --> " << std::setw(15) << destNode->getID() << " [" << nOutboundConnections << "/" << MAXOUTBOUNDPEERS << " out | " << nInboundConnections << " in ]");
 		sendVersionMsg(destNode);
 
 	}
@@ -93,7 +94,9 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 
 void Node::disconnect(Node::ptr destNode)
 {
-	destNode->inboundDisconnect(shared_from_this());
+	if(destNode->isReachable()) {
+		destNode->inboundDisconnect(shared_from_this());
+	}
 
 	auto it = findNodeInVector(destNode, connections);
 	if (it != std::end(connections)) {
@@ -125,9 +128,12 @@ void Node::recvVersionMsg(Node::ptr senderNode)
 			addKnownNode(senderNode);
 		}
 	} else {
-		Node::vector addr;
-		addr.push_back(shared_from_this());
-		sendAddrMsg(senderNode, addr);
+		// advertise if we accept connections
+		if(acceptInboundConnections) {
+			Node::vector addr;
+			addr.push_back(shared_from_this());
+			scheduleAddrMsg(senderNode, addr);
+		}
 		sendGetaddrMsg(senderNode);
 	}
 }
@@ -149,7 +155,9 @@ void Node::addKnownNode(Node::ptr node)
 void Node::addKnownNodes(Node::vector& nodes)
 {
 	for (Node::ptr n : nodes) {
-		addKnownNode(n);
+		if(n->isReachable()) {
+			addKnownNode(n);
+		}
 	}
 }
 
@@ -189,7 +197,6 @@ void Node::recvAddrMsg(Node::ptr originNode, Node::vector& vAddr)
 	//! \constraint We don't check whether a node is in reachable nets, and hence are always forwarding the "addr" messages to two nodes.
 	addKnownNodes(vAddr);
 
-	//! \todo: implement and use timestamps. "lastSeen" for Nodes. We should only forward addrs younger than 10 minutes here.	
 	
 	time_t now = Simulation::getSimClock();
 
@@ -301,20 +308,8 @@ void Node::stop()
 
 void Node::maintenance()
 {
-	// check if all our connections are still online
-	for (Node::ptr node : connections) {
-		if(!node->isReachable()) {
-			disconnect(node);
-
-			//! \constraint we remove known nodes directly when we can't reach them anymore
-			removeKnownNode(node);
-		}
-	}
-
-	for (Node::ptr node : disconnectSchedule) {
-		disconnect(node);
-	}
-	disconnectSchedule.clear();
+	checkConnections();
+	runDisconnect();
 
 	fillConnections();
 
@@ -330,7 +325,29 @@ void Node::maintenance()
 
 }
 
-void Node::fillConnections()
+void Node::checkConnections() 
+{
+	// check if all our connections are still online
+	Node::vector connCopy = connections;
+	for (Node::ptr node : connCopy) {
+		if(!node->isReachable()) {
+			disconnect(node);
+			//! \constraint we remove known nodes directly when we can't reach them anymore
+			removeKnownNode(node);
+		}
+	}
+}
+
+void Node::runDisconnect() 
+{
+	Node::vector discCopy = disconnectSchedule;
+	for (Node::ptr node : discCopy) {
+		disconnect(node);
+	}
+	disconnectSchedule.clear();
+}
+
+void Node::fillConnections(bool fOneShot)
 {
 	if(knownNodes.empty()) return;
 	// get Minimum of MAXOUTBOUNDPEERS and knownNodes.size() to determine to how many nodes we can connect
@@ -338,14 +355,13 @@ void Node::fillConnections()
 
 	// Choose random Nodes of knownNodes
 	//! \constraint fill one connection per tick
-	if (connections.size() < numberOfConnections) {
+	short nTries = 0;
+	while (nTries < 100 && nOutboundConnections < numberOfConnections) {
 
 		// randomly choose nodes until we have a distinct, reachable set
 		Node::ptr n = randomNodeOfMap(knownNodes);
-		while(!n->isReachable() || nodeInVector(n, connections)) {
-			n = randomNodeOfMap(knownNodes);
-		}
-		connect(n);
+		connect(n, fOneShot);
+		nTries++;
 	}
 }
 
@@ -401,11 +417,12 @@ bool CrawlerNode::connect(Node::ptr destNode, bool fOneShot)
 
 void CrawlerNode::maintenance()
 {
-	goodNodes.clear();
-	for (auto it : simCTX->getOnlineNodes()) {
-		goodNodes.push_back(it);
-	}
-	Node::maintenance();
+	goodNodes = simCTX->getOnlineNodes();
+
+	checkConnections();
+	runDisconnect();
+
+	fillConnections(true);
 }
 
 Node::vector CrawlerNode::getGoodNodes() 
@@ -511,21 +528,6 @@ void nodeVectorToGraph(Node::vector& nodes, Graph& g)
 			// check if edge doesn't exist yet, then add it
 			if(!boost::edge(u,v,g).second) {
 				boost::add_edge(u, v, g);
-			}
-		}
-
-		// for inbound connections
-		for(Node::ptr from : nodes.at(index)->getInboundConnections()) {
-			// find the node in allnodes
-			auto pos = findNodeInVector(from, nodes);
-			unsigned int fromIndex = std::distance(nodes.begin(), pos);
-
-			// add to the graph
-			Vertex v = boost::vertex(fromIndex, g);
-
-			// check if edge doesn't exist yet, then add it
-			if(!boost::edge(v, u, g).second) {
-				boost::add_edge(v, u, g);
 			}
 		}
 	}

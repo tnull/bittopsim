@@ -116,7 +116,7 @@ public:
 	/*!
 	 * \brief try to connect until we have
 	 */
-	void fillConnections();
+	void fillConnections(bool fOneShot = false);
 
 	/*!
 	 * \brief returns if the node is reachable
@@ -151,12 +151,10 @@ protected:
 	 * @return true if the connection could be established, else false.
 	 */
 	bool connect(Node::ptr destNode, bool fOneShot = false);
-private:
 
-	/*!
-	 * @brief disconnects from an other node.
-	 * @param destNode is the Node to disconnect from
-	 */
+	void checkConnections();
+	void runDisconnect();
+private:
 	void disconnect(Node::ptr destNode);
 	
 	/*!
@@ -196,6 +194,7 @@ private:
 	 * \return std::string with the ID
 	 */
 	std::string generateRandomIP(); 
+
 
 	std::string identifier; //!< the IP of the Node, also used as an ID
 	Node::vector connections; //!< The connected (outbound) Nodes

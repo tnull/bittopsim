@@ -41,7 +41,6 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 	}
 
 	seed = std::make_shared<DNSSeeder>(this);
-	allNodes.push_back(seed->getCrawlerNode());
 	
 	// main simulation loop
 	short crawlerClock = 0; // crawler stays connected 10 seconds
@@ -55,25 +54,25 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 			it->maintenance();
 		}
 
-		if(churnClock == 10) {
-			//! \constraint ~ every 10 seconds 0-3 peers comes and goes
-			short count = rand() % 3;
-			for (short s = 0; s < count; ++s) {
-				Node::ptr n = randomNodeOfVector(onlineNodes);
-				if (n != nullptr) {
-					n->stop();
-				}
-			}
-
-			count = rand() % 3;
-			for (short s = 0; s < count; ++s) {
-				n = randomNodeOfVector(offlineNodes);
-				if (n != nullptr) {
-					n->start();
-				}
+	if(churnClock == 10) {
+		//! \constraint ~every 11 seconds 0-3 peers come and go
+		short count = rand() % 3;
+		for (short s = 0; s < count; ++s) {
+			Node::ptr n = randomNodeOfVector(onlineNodes);
+			if (n != nullptr) {
+				n->stop();
 			}
 		}
-		churnClock++;
+
+		count = rand() % 3;
+		for (short s = 0; s < count; ++s) {
+			n = randomNodeOfVector(offlineNodes);
+			if (n != nullptr) {
+				n->start();
+			}
+		}
+	}
+	churnClock++;
 
 		if(crawlerClock == 10) {
 			seed->getCrawlerNode()->maintenance();
