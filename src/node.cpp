@@ -308,6 +308,11 @@ void Node::stop()
 
 void Node::maintenance()
 {
+	if(connections.empty()) {
+		//! \constraint We ask the dnsseeder multiple times, if we don't get peers from him.
+		DNSSeeder::ptr seed = simCTX->getDNSSeeder();
+		connect(seed->getCrawlerNode(), true);
+	}
 	runDisconnect();
 	fillConnections();
 	trickle();
@@ -337,11 +342,6 @@ void Node::trickle()
 
 void Node::fillConnections(bool fOneShot)
 {
-	if(connections.empty()) {
-		//! \constraint We ask the dnsseeder multiple times, if we don't get peers from him.
-		DNSSeeder::ptr seed = simCTX->getDNSSeeder();
-		connect(seed->getCrawlerNode(), true);
-	}
 
 	if(knownNodes.empty()) return;
 	// get Minimum of MAXOUTBOUNDPEERS and knownNodes.size() to determine to how many nodes we can connect
