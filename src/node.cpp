@@ -310,19 +310,8 @@ void Node::maintenance()
 {
 	checkConnections();
 	runDisconnect();
-
 	fillConnections();
-
-	//! \constraint Bitcoins sends addr messages around every 100ms, but only with a probability of 1 / number of connections
-	Node::ptr trickleNode = randomNodeOfVector(connections);
-	if(trickleNode != nullptr) {
-		auto it = addrMessagesToSend.find(trickleNode->getID());
-		if(it != std::end(addrMessagesToSend)) {
-			sendAddrMsg(trickleNode, it->second);
-			addrMessagesToSend.erase(it);
-		}
-	}
-
+	trickle();
 }
 
 void Node::checkConnections() 
@@ -345,6 +334,19 @@ void Node::runDisconnect()
 		disconnect(node);
 	}
 	disconnectSchedule.clear();
+}
+
+void Node::trickle()
+{
+	//! \constraint Bitcoins sends addr messages around every 100ms, but only with a probability of 1 / number of connections
+	Node::ptr trickleNode = randomNodeOfVector(connections);
+	if(trickleNode != nullptr) {
+		auto it = addrMessagesToSend.find(trickleNode->getID());
+		if(it != std::end(addrMessagesToSend)) {
+			sendAddrMsg(trickleNode, it->second);
+			addrMessagesToSend.erase(it);
+		}
+	}
 }
 
 void Node::fillConnections(bool fOneShot)

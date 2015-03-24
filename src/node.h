@@ -154,6 +154,7 @@ protected:
 
 	void checkConnections();
 	void runDisconnect();
+	void trickle();
 private:
 	void disconnect(Node::ptr destNode);
 	
