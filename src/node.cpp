@@ -199,7 +199,7 @@ void Node::recvAddrMsg(Node::ptr originNode, Node::vector& vAddr)
 	unsigned long now = Simulation::getSimClock();
 
 	// if we send for the first time, or we sent for 24h to the same nodes, get new random nodes.
-	if(sendAddrNodes.size() == 0 || sendAddrNodesLastFill + 86400 < now) {
+	if(sendAddrNodes.size() == 0 || sendAddrNodesLastFill + 864000 < now) {
 		sendAddrNodesLastFill = now;
 		// send to two random connected Nodes
 		switch(connections.size()) {

@@ -204,7 +204,7 @@ private:
 	unsigned int nInboundConnections;
 	Node::vector sendAddrNodes; //!< these nodes will be used to send addrs to for 24h, then there will be new ones.
 	Node::vector relayedAddrFrom; //!< saves the nodes we already relayed an addr message from
-	time_t sendAddrNodesLastFill; //!< Last time we filled the sendAddrNodes.
+	unsigned long sendAddrNodesLastFill; //!< Last time we filled the sendAddrNodes.
 	std::unordered_map<std::string, Node::vector> addrMessagesToSend; //! The vector of addr messages to send next tick.
 	Node::vector disconnectSchedule; //!< Saves the node to disconnect from next tick
 };
@@ -268,7 +268,7 @@ public:
 private:
 	void cacheHit(bool force = false); //!< a Node's query came in, so hit the cache, maybe rebuild
 	Node::vector nodeCache; //!< current cache of nodes which will be delivered
-	time_t cacheTime; //!< last time a cache was created
+	unsigned long cacheTime; //!< last time a cache was created
 	int cacheHits; //!< number of cache hits for this cache
 	CrawlerNode::ptr crawlerNode; //!< the Bitcoin Node of the seeder
 	Simulation* simCTX; //!< the simulation the DNSSeeder belongs to
