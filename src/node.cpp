@@ -94,9 +94,7 @@ bool Node::connect(Node::ptr destNode, bool fOneShot)
 
 void Node::disconnect(Node::ptr destNode)
 {
-	if(destNode->isReachable()) {
-		destNode->inboundDisconnect(shared_from_this());
-	}
+	destNode->inboundDisconnect(shared_from_this());
 
 	auto it = findNodeInVector(destNode, connections);
 	if (it != std::end(connections)) {
@@ -308,23 +306,9 @@ void Node::stop()
 
 void Node::maintenance()
 {
-	checkConnections();
 	runDisconnect();
 	fillConnections();
 	trickle();
-}
-
-void Node::checkConnections() 
-{
-	// check if all our connections are still online
-	Node::vector connCopy = connections;
-	for (Node::ptr node : connCopy) {
-		if(!node->isReachable()) {
-			disconnect(node);
-			//! \constraint we remove known nodes directly when we can't reach them anymore
-			removeKnownNode(node);
-		}
-	}
 }
 
 void Node::runDisconnect() 
