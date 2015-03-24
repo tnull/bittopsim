@@ -317,7 +317,7 @@ typedef struct EdgeProperty {
 	float probability = 1.0; //!< propability to choose this edge (for the weight map / floyd-warshall).
  } EdgeProperty;
 
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty> Graph;
+typedef boost::adjacency_list<boost::setS, boost::vecS, boost::undirectedS, VertexProperty, EdgeProperty> Graph;
 
 typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
 
