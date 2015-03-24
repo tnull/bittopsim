@@ -412,9 +412,6 @@ void CrawlerNode::maintenance()
 			goodNodes.push_back(it);
 		}
 	}
-
-
-	checkConnections();
 	runDisconnect();
 
 	fillConnections(true);

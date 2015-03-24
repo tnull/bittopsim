@@ -94,7 +94,9 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 	calculateAndPrintData(g, randomGraph);
 	
 	// write the graph
-	writeGraphs(g, randomGraph, graphFilePath);
+	if(!graphFilePath.empty()) {
+		writeGraphs(g, randomGraph, graphFilePath);
+	}
 }
 
 
@@ -262,7 +264,7 @@ int main(int argc, char* argv[])
 	int churn = 0;
 
 	// outpath for the graph
-	std::string graphFilePath = "./graph.gv";
+	std::string graphFilePath;
 
 	// check arguments
 	switch(argc) {
@@ -281,7 +283,6 @@ int main(int argc, char* argv[])
 		default:
 			std::cout << "usage: " << argv[0] << " number_of_server_nodes [number_of_client_nodes] [duration_of_simulation] [churn rate in node change per 10 sec.] [graphviz graph file path]" << std::endl;
 			std::cout << "the duration should be provided in seconds, default is 86400 (one day)" << std::endl;
-			std::cout << "the default file path for the graph is \"./graph.gv\"" << std::endl;
 			return 0;
 			break;
 	}
