@@ -25,7 +25,7 @@ class Simulation
 		 * \param endSimulationTime: the time the simulation should stop.
 		 * \param graphFilePath: the file path the graphviz graph will be written to.
 		 */
-		Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t endSimulationTime, std::string graphFilePath, int churn);
+		Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, unsigned long endSimulationTime, std::string graphFilePath, int churn);
 		~Simulation();
 
 		/*!
@@ -37,13 +37,13 @@ class Simulation
 		 * \brief return the current time of the simulation
 		 * \return current time of simulation
 		 */
-		static time_t getSimClock();
+		static unsigned long getSimClock();
 
 		/*!
 		 * \brief increases the simulation time by one second, aka "tick"
 		 * \return the increased time
 		 */
-		static time_t tickSimClock();
+		static unsigned long tickSimClock();
 
 		/*!
 		 * \brief returns the dns seeder
@@ -89,12 +89,12 @@ class Simulation
 		unsigned long calculateDiameter(Graph& g, DistanceMatrix& distances);
 
 
-		static time_t simClock; //!< the current time for the simulation
+		static unsigned long simClock; //!< the current time for the simulation
 		DNSSeeder::ptr seed; //!< the DNSSeeder
 		Node::vector allNodes; //!< all nodes spawned
 		Node::vector onlineNodes; //!< all online nodes
 		Node::vector offlineNodes; //!< all offline nodes
-		std::unordered_map<time_t, Node::vector> bootSchedule; //!< the times at which a node should be bootstrapped.
+		std::unordered_map<unsigned long, Node::vector> bootSchedule; //!< the times at which a node should be bootstrapped.
 };
 
 #endif //BITTOPSIM_H

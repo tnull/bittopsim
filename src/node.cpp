@@ -196,7 +196,7 @@ void Node::recvAddrMsg(Node::ptr originNode, Node::vector& vAddr)
 	addKnownNodes(vAddr);
 
 	
-	time_t now = Simulation::getSimClock();
+	unsigned long now = Simulation::getSimClock();
 
 	// if we send for the first time, or we sent for 24h to the same nodes, get new random nodes.
 	if(sendAddrNodes.size() == 0 || sendAddrNodesLastFill + 86400 < now) {
@@ -452,9 +452,9 @@ void DNSSeeder::cacheHit(bool force)
 {
 	Node::vector goodNodes = crawlerNode->getGoodNodes();
 	int cacheSize = nodeCache.size();
-	time_t now = Simulation::getSimClock();
+	unsigned long now = Simulation::getSimClock();
 	cacheHits++;
-	if (force || cacheHits > (cacheSize * cacheSize) / 400 || ((cacheHits * cacheHits) > cacheSize / 20 && now - cacheTime > 5)) {
+	if (force || cacheHits > (cacheSize * cacheSize) / 400 || ((cacheHits * cacheHits) > cacheSize / 20 && now - cacheTime > 50)) {
 		LOG("\tDNSSeeder is rebuilding nodeCache - force: " << std::boolalpha << force << " cacheHits: " << cacheHits << " cacheSize: " << cacheSize);
 		nodeCache.clear();
 		cacheHits = 0;

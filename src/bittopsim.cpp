@@ -5,17 +5,17 @@
 #include <boost/random/mersenne_twister.hpp> // for the random number generator
 
 
-time_t Simulation::simClock; /// the current time for the simulation
+unsigned long Simulation::simClock; /// the current time for the simulation
 
-Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, time_t simDuration, std::string graphFilePath, int churn)
+Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfClientNodes, unsigned long simDuration, std::string graphFilePath, int churn)
 {
 
 	// time our sim should stop
-	time_t endTime = getSimClock() + simDuration;
+	unsigned long endTime = getSimClock() + simDuration;
 
 	// generate spawn times:
 	Node::ptr n;
-	time_t timeSlot;
+	unsigned long timeSlot;
 	for (unsigned int i = 0; i < numberOfServerNodes; ++i) {
 		try {
 			n = std::make_shared<Node>(this);
@@ -23,7 +23,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 			std::cerr << "Not enough memory: " << ba.what() << std::endl;
 		}
 		LOG("Creating Server Node " << n->getID() << ".");
-		timeSlot = (time_t) getSimClock() + rand() % simDuration;
+		timeSlot = (unsigned long) getSimClock() + rand() % simDuration;
 		bootSchedule[timeSlot].push_back(n);
 		allNodes.push_back(n);
 	}
@@ -35,7 +35,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 			std::cerr << "Not enough memory: " << ba.what() << std::endl;
 		}
 		LOG("Creating Client Node " << n->getID() << ".");
-		timeSlot = (time_t) getSimClock() + rand() % simDuration;
+		timeSlot = (unsigned long) getSimClock() + rand() % simDuration;
 		bootSchedule[timeSlot].push_back(n);
 		allNodes.push_back(n);
 	}
@@ -54,7 +54,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 			it->maintenance();
 		}
 
-		if(churn > 0 && churnClock == 10) {
+		if(churn > 0 && churnClock == 100) {
 			//! \constraint ~every 11 seconds 0-3 peers come and go
 			short count = rand() % churn;
 			for (short s = 0; s < count; ++s) {
@@ -74,7 +74,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 		}
 		churnClock++;
 
-		if(crawlerClock == 10) {
+		if(crawlerClock == 100) {
 			seed->getCrawlerNode()->maintenance();
 			crawlerClock = 0;
 		}
@@ -112,12 +112,12 @@ Simulation::~Simulation()
 	allNodes.clear();
 }
 
-time_t Simulation::getSimClock()
+unsigned long Simulation::getSimClock()
 {
 	return Simulation::simClock;
 }
 
-time_t Simulation::tickSimClock()
+unsigned long Simulation::tickSimClock()
 {
 	return ++Simulation::simClock;
 }
@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 	int numberOfClientNodes = 0;
 
 	// duration of the simulation
-	int simDuration = 86400;
+	int simDuration = 864000;
 
 	// churn nodes per 10 seconds
 	int churn = 0;
@@ -288,7 +288,7 @@ int main(int argc, char* argv[])
 		case 1:
 		default:
 			std::cout << "usage: " << argv[0] << " number_of_server_nodes [number_of_client_nodes] [duration_of_simulation] [churn rate in node change per 10 sec.] [graphviz graph file path]" << std::endl;
-			std::cout << "the duration should be provided in seconds, default is 86400 (one day)" << std::endl;
+			std::cout << "the duration should be provided in 1/10 seconds, default is 864000 (one day)" << std::endl;
 			return 0;
 			break;
 	}
