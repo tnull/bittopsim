@@ -54,25 +54,25 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 			it->maintenance();
 		}
 
-	if(churn > 0 && churnClock == 10) {
-		//! \constraint ~every 11 seconds 0-3 peers come and go
-		short count = rand() % churn;
-		for (short s = 0; s < count; ++s) {
-			Node::ptr n = randomNodeOfVector(onlineNodes);
-			if (n != nullptr) {
-				n->stop();
+		if(churn > 0 && churnClock == 10) {
+			//! \constraint ~every 11 seconds 0-3 peers come and go
+			short count = rand() % churn;
+			for (short s = 0; s < count; ++s) {
+				Node::ptr n = randomNodeOfVector(onlineNodes);
+				if (n != nullptr) {
+					n->stop();
+				}
 			}
-		}
 
-		count = rand() % churn;
-		for (short s = 0; s < count; ++s) {
-			n = randomNodeOfVector(offlineNodes);
-			if (n != nullptr) {
-				n->start();
+			count = rand() % churn;
+			for (short s = 0; s < count; ++s) {
+				n = randomNodeOfVector(offlineNodes);
+				if (n != nullptr) {
+					n->start();
+				}
 			}
 		}
-	}
-	churnClock++;
+		churnClock++;
 
 		if(crawlerClock == 10) {
 			seed->getCrawlerNode()->maintenance();
@@ -81,9 +81,15 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 		crawlerClock++;
 	}
 
+	for(Node::ptr n : onlineNodes) {
+		if((n->getConnections()).empty()) {
+			std::cout << n->getID() << " has no connections!!" << std::endl;
+		}
+	}
+
 	// generate the graph
-	Graph g(allNodes.size());
-	nodeVectorToGraph(allNodes, g);
+	Graph g(onlineNodes.size());
+	nodeVectorToGraph(onlineNodes, g);
 
 	// generate random graph for comparison
 	Graph randomGraph;

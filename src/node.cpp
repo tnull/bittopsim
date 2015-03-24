@@ -275,12 +275,14 @@ void Node::start()
 	online = true;
 	simCTX->setNodeOnline(shared_from_this());
 	fillConnections();
+
 	if(connections.size() >= 2) {
 		LOG("\tEnough P2P peers available, skipping DNS seeding");
 		return;
 	}
 	DNSSeeder::ptr seed = simCTX->getDNSSeeder();
 	connect(seed->getCrawlerNode(), true);
+
 	Node::vector nodesFromSeeds = seed->queryDNS();
 	addKnownNodes(nodesFromSeeds);
 	fillConnections();
@@ -335,6 +337,12 @@ void Node::trickle()
 
 void Node::fillConnections(bool fOneShot)
 {
+	if(connections.empty()) {
+		//! \constraint We ask the dnsseeder multiple times, if we don't get peers from him.
+		DNSSeeder::ptr seed = simCTX->getDNSSeeder();
+		connect(seed->getCrawlerNode(), true);
+	}
+
 	if(knownNodes.empty()) return;
 	// get Minimum of MAXOUTBOUNDPEERS and knownNodes.size() to determine to how many nodes we can connect
 	unsigned int numberOfConnections = MAXOUTBOUNDPEERS < knownNodes.size() ? MAXOUTBOUNDPEERS : knownNodes.size();
