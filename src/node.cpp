@@ -522,16 +522,20 @@ Node::ptr randomNodeOfMap(Node::map& m)
 void nodeVectorToGraph(Node::vector& nodes, Graph& g)
 {
 	for(unsigned int index = 0; index < nodes.size(); ++index) {
-		//add vertex
-		Vertex u = boost::vertex(index, g);
 
-		// for outgoing connections
+		// for connections
 		for(Node::ptr to : nodes.at(index)->getConnections()) {
+
 			// find the node in allnodes
 			auto pos = findNodeInVector(to, nodes);
-			unsigned int toIndex = std::distance(nodes.begin(), pos);
+			if(pos == std::end(nodes)) continue;
+			unsigned int toIndex = std::distance(std::begin(nodes), pos);
+			if(toIndex == index) continue;
 
-			// add to the graph
+			//add source vertex
+			Vertex u = boost::vertex(index, g);
+
+			// add  target vertex
 			Vertex v = boost::vertex(toIndex, g);
 
 			// check if edge doesn't exist yet, then add it
