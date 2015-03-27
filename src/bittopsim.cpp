@@ -55,7 +55,7 @@ Simulation::Simulation(unsigned int numberOfServerNodes, unsigned int numberOfCl
 		}
 
 		if(churn > 0 && churnClock == 100) {
-			//! \constraint ~every 11 seconds 0-3 peers come and go
+			//! \constraint ~every 10 seconds churn peers come and go
 			short count = rand() % churn;
 			for (short s = 0; s < count; ++s) {
 				Node::ptr n = randomNodeOfVector(onlineNodes);

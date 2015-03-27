@@ -9,7 +9,7 @@ mkdir -p log
 echo "Generating Args file"
 for i in ${SIMSRVNODES[*]}; do
 	for j in ${SIMCLTNODES[*]}; do
-		echo "\"$i $j $SIMTIME >> log/bittopsim-$i-$j-$SIMTIME.log\"" >> .argfile
+		echo "\"$i $j $SIMTIME 3 >> log/bittopsim-$i-$j-$SIMTIME.log\"" >> .argfile
 	done
 done
 
