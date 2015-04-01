@@ -13,5 +13,5 @@ for i in ${SIMSRVNODES[*]}; do
 	done
 done
 
-#cat argfile|xargs -I % -P4 -t sh -c "$SIMCMD %"
+#cat .argfile|xargs -I % -P4 -t sh -c "$SIMCMD %"
 #rm .argfile
