@@ -16,10 +16,10 @@ $ make
 $ make doc
 ```
 
-## Running ##
+## Usage ##
 `bittopsim` takes the following options:
 ```
 $ ./bittopsim
-usage: ./bittopsim number_of_server_nodes [number_of_client_nodes] [duration_of_simulation] [churn rate in node change per 10 sec. (optional)] [graphviz graph file path (optional)]
-the duration should be provided in 1/10 seconds, default is 864000 (one day)
+usage: ./bittopsim number_of_server_nodes number_of_client_nodes [duration_of_simulation] [churn rate in node change per 10 sec.] [graphviz graph file path]
+the duration should be provided in simulation ticks (1/10 second), default is 864000 (one day)
 ```
